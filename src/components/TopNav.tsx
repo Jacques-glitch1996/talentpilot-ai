@@ -1,99 +1,80 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { usePathname } from "next/navigation";
 
-const linkStyle = (active: boolean): React.CSSProperties => ({
-  padding: "8px 10px",
-  borderRadius: 10,
-  textDecoration: "none",
-  color: active ? "white" : "#111827",
-  background: active ? "#7C3AED" : "transparent",
-  border: active ? "1px solid #7C3AED" : "1px solid transparent",
-});
+const links = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/candidates", label: "Candidats" },
+  { href: "/job-posts", label: "Offres" },
+  { href: "/messages", label: "Communication" },
+  { href: "/interviews", label: "Entrevues" },
+  { href: "/documents", label: "Documents" },
+  { href: "/ai", label: "AI" },
+  { href: "/performance", label: "Performances" },
+  { href: "/history", label: "Historique" },
+];
 
 export default function TopNav() {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
 
   return (
-    <div
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 20,
-        backdropFilter: "blur(10px)",
-        background: "rgba(255,255,255,0.8)",
-        borderBottom: "1px solid #eee",
-      }}
-    >
+    <header style={{ position: "sticky", top: 0, zIndex: 50, padding: "14px 16px" }}>
       <div
+        className="tp-glass"
         style={{
           maxWidth: 1100,
           margin: "0 auto",
-          padding: "12px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
+          borderRadius: 18,
+          padding: "12px 12px",
+          boxShadow: "0 10px 30px rgba(2,6,23,0.08)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>
-            <span style={{ color: "#1E40AF" }}>Talent</span>
-            <span style={{ color: "#7C3AED" }}>Pilot</span> AI
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              className="tp-gradient-bg"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                boxShadow: "0 10px 20px rgba(30,64,175,0.25)",
+              }}
+            />
+            <div>
+              <div className="tp-gradient-text" style={{ fontWeight: 900, fontSize: 16, lineHeight: "18px" }}>
+                TalentPilot AI
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>Recruiting OS • Québec/Canada</div>
+            </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Link href="/dashboard" style={linkStyle(pathname === "/dashboard")}>
-              Dashboard
-            </Link>
-            <Link href="/candidates" style={linkStyle(pathname === "/candidates")}>
-              Candidats
-            </Link>
-            <Link href="/messages" style={linkStyle(pathname === "/messages")}>
-              Messages
-            </Link>
-            <Link href="/interviews" style={linkStyle(pathname === "/interviews")}>
-              Entrevues
-            </Link>
-            <Link href="/documents" style={linkStyle(pathname === "/documents")}>
-              Documents
-            </Link>
-            <Link href="/job-posts" style={linkStyle(pathname === "/job-posts")}>
-              Offres d’emploi
-            </Link>
-            <Link href="/ai" style={linkStyle(pathname === "/ai")}>
-              AI
-            </Link>
-            <Link href="/performance" style={linkStyle(pathname === "/performance")}>
-              Performances
-            </Link>
-            <Link href="/history" style={linkStyle(pathname === "/history")}>
-              Historique
-            </Link>
-          </div>
+          <nav style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            {links.map((l) => {
+              const active = pathname === l.href;
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 999,
+                    border: active ? "1px solid rgba(124,58,237,0.45)" : "1px solid rgba(148,163,184,0.35)",
+                    background: active ? "rgba(124,58,237,0.10)" : "rgba(255,255,255,0.55)",
+                    color: "#0f172a",
+                    textDecoration: "none",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    boxShadow: active ? "0 10px 20px rgba(124,58,237,0.10)" : "none",
+                  }}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-
-        <button
-          onClick={logout}
-          style={{
-            padding: "8px 12px",
-            borderRadius: 10,
-            border: "1px solid #e5e7eb",
-            background: "white",
-            cursor: "pointer",
-          }}
-        >
-          Déconnexion
-        </button>
       </div>
-    </div>
+    </header>
   );
 }

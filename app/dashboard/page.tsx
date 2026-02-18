@@ -31,25 +31,48 @@ export default function DashboardPage() {
   return (
     <>
       <TopNav />
-      <div style={{ padding: 20 }}>
-        <h1>Dashboard</h1>
-        <p>
-          Connecté : <b>{email || "…"}</b>
-        </p>
 
-        <button
-          onClick={logout}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "18px 16px 40px" }}>
+        <div
+          className="tp-glass"
           style={{
-            padding: 10,
-            borderRadius: 10,
-            border: "1px solid #ddd",
-            cursor: "pointer",
+            borderRadius: 20,
+            padding: 20,
+            boxShadow: "0 10px 30px rgba(2,6,23,0.06)",
           }}
         >
-          Déconnexion
-        </button>
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <h1 style={{ margin: 0 }}>Dashboard</h1>
+              <div style={{ marginTop: 6, opacity: 0.7 }}>
+                Aperçu général de votre activité de recrutement.
+              </div>
+            </div>
+
+            <button
+              onClick={logout}
+              className="tp-gradient-bg"
+              style={{
+                padding: "10px 16px",
+                borderRadius: 999,
+                border: "none",
+                color: "white",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 10px 20px rgba(124,58,237,0.25)",
+              }}
+            >
+              Déconnexion
+            </button>
+          </div>
+
+          <div style={{ height: 18 }} />
+
+          <div style={{ fontSize: 14 }}>
+            Connecté : <b>{email || "…"}</b>
+          </div>
+        </div>
       </div>
     </>
   );
 }
-
