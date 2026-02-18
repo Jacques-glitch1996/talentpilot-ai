@@ -1,47 +1,25 @@
 "use client";
 
 import TopNav from "@/components/TopNav";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-type CandidateLite = {
+type Message = {
   id: string;
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-};
-
-type MessageRow = {
-  id: string;
-  candidate_id: string;
-  sender_id: string | null;
-  content: string | null;
-  channel: string | null;
+  content: string;
+  channel: string;
   created_at: string;
 };
 
 export default function MessagesPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
-
-  const [candidates, setCandidates] = useState<CandidateLite[]>([]);
-  const [messages, setMessages] = useState<MessageRow[]>([]);
-
-  const [candidateId, setCandidateId] = useState("");
-  const [channel, setChannel] = useState<"LinkedIn" | "Email">("LinkedIn");
+  const [messages, setMessages] = useState<Message[]>([]);
   const [content, setContent] = useState("");
+  const [channel, setChannel] = useState("email");
+  const [loading, setLoading] = useState(true);
 
-  const candidateLabel = useMemo(() => {
-    const c = candidates.find((x) => x.id === candidateId);
-    if (!c) return "";
-    const name = `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Candidat";
-    return c.email ? `${name} — ${c.email}` : name;
-  }, [candidateId, candidates]);
-
-  // protection + bootstrap
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -49,153 +27,139 @@ export default function MessagesPage() {
         router.push("/login");
         return;
       }
-      await Promise.all([loadCandidates(), loadMessages()]);
+
+      const { data: list } = await supabase
+        .from("messages")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      setMessages(list || []);
       setLoading(false);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  const loadCandidates = async () => {
-    const { data, error } = await supabase
-      .from("candidates")
-      .select("id, first_name, last_name, email")
-      .order("created_at", { ascending: false })
-      .limit(100);
+  const addMessage = async () => {
+    if (!content) return;
 
-    if (error) {
-      setErr(error.message);
-      return;
-    }
-    setCandidates((data as CandidateLite[]) ?? []);
-    if (!candidateId && data?.[0]?.id) setCandidateId(data[0].id);
-  };
-
-  const loadMessages = async () => {
     const { data, error } = await supabase
       .from("messages")
-      .select("id, candidate_id, sender_id, content, channel, created_at")
-      .order("created_at", { ascending: false })
-      .limit(50);
+      .insert({
+        content,
+        channel,
+      })
+      .select()
+      .single();
 
-    if (error) {
-      setErr(error.message);
-      return;
+    if (!error && data) {
+      setMessages([data, ...messages]);
+      setContent("");
     }
-    setMessages((data as MessageRow[]) ?? []);
-  };
-
-  const send = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErr("");
-
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr) {
-      setErr(userErr.message);
-      return;
-    }
-    const userId = userData.user?.id;
-    if (!userId) {
-      router.push("/login");
-      return;
-    }
-
-    if (!candidateId) {
-      setErr("Veuillez sélectionner un candidat.");
-      return;
-    }
-
-    const { error } = await supabase.from("messages").insert({
-      candidate_id: candidateId,
-      sender_id: userId,
-      content,
-      channel,
-      // organization_id: inutile si DEFAULT current_org_id() est configuré
-    });
-
-    if (error) {
-      setErr(error.message);
-      return;
-    }
-
-    setContent("");
-    await loadMessages();
   };
 
   return (
     <>
       <TopNav />
-      <div style={{ padding: 20 }}>
-        <h1>Messages</h1>
 
-        {err ? <div style={{ color: "crimson", marginBottom: 12 }}>❌ {err}</div> : null}
-        {loading ? <div>Chargement...</div> : null}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px 50px" }}>
+        <div
+          className="tp-glass"
+          style={{
+            borderRadius: 24,
+            padding: 24,
+            boxShadow: "0 20px 40px rgba(2,6,23,0.08)",
+          }}
+        >
+          <div style={{ marginBottom: 20 }}>
+            <h1 style={{ margin: 0 }}>Communication</h1>
+            <div style={{ opacity: 0.6, marginTop: 6 }}>
+              Centralisez vos échanges candidats.
+            </div>
+          </div>
 
-        <form onSubmit={send} style={{ display: "grid", gap: 10, maxWidth: 900, marginTop: 12 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <select
-              value={candidateId}
-              onChange={(e) => setCandidateId(e.target.value)}
-              style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd", minWidth: 320 }}
-            >
-              {candidates.map((c) => {
-                const name = `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Candidat";
-                const label = c.email ? `${name} — ${c.email}` : name;
-                return (
-                  <option key={c.id} value={c.id}>
-                    {label}
-                  </option>
-                );
-              })}
-            </select>
-
+          {/* FORMULAIRE */}
+          <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
             <select
               value={channel}
-              onChange={(e) => setChannel(e.target.value as any)}
-              style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+              onChange={(e) => setChannel(e.target.value)}
+              style={inputStyle}
             >
-              <option value="LinkedIn">LinkedIn</option>
-              <option value="Email">Email</option>
+              <option value="email">Email</option>
+              <option value="linkedin">LinkedIn</option>
+              <option value="phone">Téléphone</option>
             </select>
 
+            <textarea
+              placeholder="Contenu du message"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={4}
+              style={inputStyle}
+            />
+
             <button
-              type="submit"
-              disabled={!content.trim()}
+              onClick={addMessage}
+              className="tp-gradient-bg"
               style={{
-                padding: 10,
-                borderRadius: 10,
+                padding: "12px 20px",
+                borderRadius: 999,
                 border: "none",
-                background: "#1E40AF",
                 color: "white",
+                fontWeight: 700,
                 cursor: "pointer",
+                width: 200,
               }}
             >
-              Envoyer
+              Ajouter message
             </button>
           </div>
 
-          <textarea
-            placeholder={`Message (${channel}) — ${candidateLabel || "Sélectionnez un candidat"}`}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={4}
-            style={{ padding: 12, borderRadius: 12, border: "1px solid #ddd" }}
-          />
-        </form>
+          {/* LISTE */}
+          {loading ? (
+            <div>Chargement...</div>
+          ) : (
+            <div style={{ display: "grid", gap: 16 }}>
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  style={{
+                    padding: 16,
+                    borderRadius: 18,
+                    background: "rgba(255,255,255,0.85)",
+                    border: "1px solid rgba(148,163,184,0.3)",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        background: "rgba(124,58,237,0.1)",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {msg.channel}
+                    </span>
 
-        <div style={{ marginTop: 18, display: "grid", gap: 10, maxWidth: 900 }}>
-          {messages.map((m) => (
-            <div key={m.id} style={{ padding: 12, borderRadius: 12, border: "1px solid #eee" }}>
-              <div style={{ fontSize: 12, opacity: 0.6 }}>
-                {m.channel ?? "—"} • {new Date(m.created_at).toLocaleString()}
-              </div>
-              <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>{m.content ?? ""}</div>
-              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.55 }}>
-                Candidate: {m.candidate_id}
-              </div>
+                    <div style={{ fontSize: 12, opacity: 0.6 }}>
+                      {new Date(msg.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 14 }}>{msg.content}</div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       </div>
     </>
   );
 }
+
+const inputStyle: React.CSSProperties = {
+  padding: 14,
+  borderRadius: 16,
+  border: "1px solid rgba(148,163,184,0.4)",
+  background: "rgba(255,255,255,0.85)",
+};
