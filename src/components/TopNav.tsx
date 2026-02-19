@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
-const links = [
+type NavItem = { href: string; label: string };
+
+const LINKS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/candidates", label: "Candidats" },
   { href: "/job-posts", label: "Offres" },
@@ -17,21 +21,49 @@ const links = [
 
 export default function TopNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState<string>("");
+
+  useEffect(() => {
+    // Fermer le menu quand on change de route
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      setEmail(data.user?.email ?? "");
+    })();
+  }, []);
+
+  const activeLabel = useMemo(() => {
+    const found = LINKS.find((l) => l.href === pathname);
+    return found?.label ?? "Navigation";
+  }, [pathname]);
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   return (
     <header style={{ position: "sticky", top: 0, zIndex: 50, padding: "14px 16px" }}>
       <div
         className="tp-glass"
         style={{
-          maxWidth: 1100,
+          maxWidth: 1200,
           margin: "0 auto",
           borderRadius: 18,
           padding: "12px 12px",
           boxShadow: "0 10px 30px rgba(2,6,23,0.08)",
         }}
       >
+        {/* Top row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Brand */}
+          <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
             <div
               className="tp-gradient-bg"
               style={{
@@ -39,18 +71,22 @@ export default function TopNav() {
                 height: 36,
                 borderRadius: 12,
                 boxShadow: "0 10px 20px rgba(30,64,175,0.25)",
+                flex: "0 0 auto",
               }}
             />
-            <div>
-              <div className="tp-gradient-text" style={{ fontWeight: 900, fontSize: 16, lineHeight: "18px" }}>
+            <div style={{ lineHeight: "18px" }}>
+              <div className="tp-gradient-text" style={{ fontWeight: 900, fontSize: 16 }}>
                 TalentPilot AI
               </div>
-              <div style={{ fontSize: 12, opacity: 0.7 }}>Recruiting OS • Québec/Canada</div>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {email ? email : "Recruiting OS • Québec/Canada"}
+              </div>
             </div>
-          </div>
+          </Link>
 
-          <nav style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            {links.map((l) => {
+          {/* Desktop nav */}
+          <nav className="tp-nav-desktop" style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            {LINKS.map((l) => {
               const active = pathname === l.href;
               return (
                 <Link
@@ -64,7 +100,7 @@ export default function TopNav() {
                     color: "#0f172a",
                     textDecoration: "none",
                     fontSize: 13,
-                    fontWeight: 700,
+                    fontWeight: 800,
                     boxShadow: active ? "0 10px 20px rgba(124,58,237,0.10)" : "none",
                   }}
                 >
@@ -73,8 +109,96 @@ export default function TopNav() {
               );
             })}
           </nav>
+
+          {/* Mobile button */}
+          <button
+            className="tp-nav-mobile"
+            onClick={() => setOpen((v) => !v)}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 999,
+              border: "1px solid rgba(148,163,184,0.35)",
+              background: "rgba(255,255,255,0.75)",
+              cursor: "pointer",
+              fontWeight: 900,
+            }}
+            aria-label="Ouvrir le menu"
+          >
+            {open ? "Fermer" : activeLabel}
+          </button>
         </div>
+
+        {/* Mobile panel */}
+        {open ? (
+          <div
+            className="tp-nav-mobile"
+            style={{
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: "1px solid rgba(148,163,184,0.25)",
+              display: "grid",
+              gap: 8,
+            }}
+          >
+            {LINKS.map((l) => {
+              const active = pathname === l.href;
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  style={{
+                    padding: "12px 12px",
+                    borderRadius: 14,
+                    border: active ? "1px solid rgba(124,58,237,0.45)" : "1px solid rgba(148,163,184,0.25)",
+                    background: active ? "rgba(124,58,237,0.10)" : "rgba(255,255,255,0.65)",
+                    textDecoration: "none",
+                    color: "#0f172a",
+                    fontWeight: 900,
+                  }}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
+
+            <button
+              onClick={logout}
+              className="tp-gradient-bg"
+              style={{
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: "none",
+                color: "white",
+                fontWeight: 900,
+                cursor: "pointer",
+                marginTop: 4,
+              }}
+            >
+              Déconnexion
+            </button>
+          </div>
+        ) : null}
       </div>
+
+      {/* CSS responsive */}
+      <style jsx global>{`
+        @media (max-width: 980px) {
+          .tp-nav-desktop {
+            display: none !important;
+          }
+          .tp-nav-mobile {
+            display: inline-flex !important;
+          }
+        }
+        @media (min-width: 981px) {
+          .tp-nav-desktop {
+            display: flex !important;
+          }
+          .tp-nav-mobile {
+            display: none !important;
+          }
+        }
+      `}</style>
     </header>
   );
 }
