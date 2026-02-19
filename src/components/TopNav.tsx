@@ -60,7 +60,6 @@ export default function TopNav() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-
           {/* BRAND */}
           <Link
             href="/dashboard"
@@ -100,6 +99,7 @@ export default function TopNav() {
                 <Link
                   key={l.href}
                   href={l.href}
+                  className={`tp-nav-pill ${active ? "tp-nav-pill-active" : ""}`}
                   style={{
                     padding: "8px 12px",
                     borderRadius: 999,
@@ -112,11 +112,8 @@ export default function TopNav() {
                     color: "#0f172a",
                     textDecoration: "none",
                     fontSize: 13,
-                    fontWeight: active ? 600 : 500, // 👈 ICI la magie
-                    boxShadow: active
-                      ? "0 10px 20px rgba(124,58,237,0.10)"
-                      : "none",
-                    transition: "all 0.15s ease",
+                    fontWeight: active ? 600 : 500,
+                    boxShadow: active ? "0 10px 20px rgba(124,58,237,0.10)" : "none",
                   }}
                 >
                   {l.label}
@@ -126,6 +123,7 @@ export default function TopNav() {
 
             <button
               onClick={logout}
+              className="tp-nav-pill tp-nav-pill-active"
               style={{
                 padding: "8px 12px",
                 borderRadius: 999,
@@ -134,6 +132,7 @@ export default function TopNav() {
                 cursor: "pointer",
                 fontWeight: 600,
               }}
+              title="Déconnexion"
             >
               Déconnexion
             </button>
@@ -213,6 +212,7 @@ export default function TopNav() {
         )}
       </div>
 
+      {/* Responsive + micro hover "glass lift" (desktop only) */}
       <style jsx global>{`
         @media (max-width: 980px) {
           .tp-nav-desktop {
@@ -228,6 +228,24 @@ export default function TopNav() {
           }
           .tp-nav-mobile {
             display: none !important;
+          }
+
+          /* Micro hover: lift + ombre douce */
+          .tp-nav-pill {
+            transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease, border 140ms ease;
+            will-change: transform;
+          }
+
+          .tp-nav-pill:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 30px rgba(2, 6, 23, 0.08);
+            background: rgba(255, 255, 255, 0.78) !important;
+          }
+
+          /* L'active reste un peu plus "posé" */
+          .tp-nav-pill.tp-nav-pill-active:hover {
+            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.10);
+            background: rgba(124, 58, 237, 0.14) !important;
           }
         }
       `}</style>
