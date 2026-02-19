@@ -7,18 +7,38 @@
   --tp-blue: #1E40AF;
   --tp-violet: #7C3AED;
 
-  /* Texte sombre lisible */
-  --tp-text: #0f172a;      /* slate-900 */
+  --tp-text: #0f172a;       /* slate-900 */
   --tp-text-muted: #475569; /* slate-600 */
 }
 
 html, body {
-  color-scheme: light; /* évite les comportements auto dark */
+  color-scheme: light;
   color: var(--tp-text);
   background: #ffffff;
 }
 
-/* --- Gradient animé (comme Base44) --- */
+/* Police Inter (déjà injectée via layout.tsx) */
+body {
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: -0.01em;
+  font-weight: 400; /* Inter Regular par défaut */
+}
+
+/* Hiérarchie typographique */
+h1 { font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-weight: 700; letter-spacing: -0.02em; }
+h3 { font-weight: 600; letter-spacing: -0.015em; }
+
+/* Textes secondaires */
+.tp-muted { color: var(--tp-text-muted); }
+
+/* Pills / labels / navigation */
+.tp-pill { font-weight: 500; }
+
+/* Titres de cartes */
+.tp-card-title { font-weight: 600; }
+
+/* --- Gradient animé --- */
 @keyframes tp-gradient {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -39,34 +59,21 @@ html, body {
   animation: tp-gradient 3s ease infinite;
 }
 
-/* --- Glassmorphism pro --- */
+/* --- Glassmorphism --- */
 .tp-glass {
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.65);
-
-  /* IMPORTANT: assure le texte sombre dans les cartes */
   color: var(--tp-text);
 }
 
-/* --- Fond discret futuriste --- */
+/* --- Background --- */
 .tp-app-bg {
   background:
     radial-gradient(1200px 600px at 15% 0%, rgba(30,64,175,0.18), transparent 55%),
     radial-gradient(1000px 600px at 85% 10%, rgba(124,58,237,0.18), transparent 55%),
     linear-gradient(to bottom, #f8fafc, #ffffff);
   min-height: 100vh;
-
-  /* IMPORTANT: assure le texte sombre sur tout le fond */
   color: var(--tp-text);
-}
-
-/* Harmonisation légère de typographie */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--tp-text);
-}
-
-p, span, div, label, input, textarea, select, button {
-  color: inherit;
 }

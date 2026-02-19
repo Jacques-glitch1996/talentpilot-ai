@@ -44,9 +44,9 @@ export default function DashboardPage() {
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
             <div>
               <h1 style={{ margin: 0 }}>Dashboard</h1>
-              <div style={{ marginTop: 6, opacity: 0.7 }}>
-                Aperçu général de votre activité de recrutement.
-              </div>
+            <div className="tp-muted" style={{ marginTop: 6 }}>
+              Aperçu général de votre activité de recrutement.
+            </div>
             </div>
 
             <button

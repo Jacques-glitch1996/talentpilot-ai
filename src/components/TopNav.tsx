@@ -40,7 +40,7 @@ export default function TopNav() {
 
   const activeLabel = useMemo(() => {
     const found = LINKS.find((l) => l.href === pathname);
-    return found?.label ?? "Navigation";
+    return found?.label ?? "Menu";
   }, [pathname]);
 
   const logout = async () => {
@@ -63,7 +63,16 @@ export default function TopNav() {
         {/* Top row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           {/* Brand */}
-          <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
+          <Link
+            href="/dashboard"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              textDecoration: "none",
+              minWidth: 220,
+            }}
+          >
             <div
               className="tp-gradient-bg"
               style={{
@@ -75,32 +84,43 @@ export default function TopNav() {
               }}
             />
             <div style={{ lineHeight: "18px" }}>
-              <div className="tp-gradient-text" style={{ fontWeight: 900, fontSize: 16 }}>
+              <div className="tp-gradient-text" style={{ fontWeight: 800, fontSize: 16 }}>
                 TalentPilot AI
               </div>
-              <div style={{ fontSize: 12, opacity: 0.7 }}>
+              <div className="tp-muted" style={{ fontSize: 12, marginTop: 2 }}>
                 {email ? email : "Recruiting OS • Québec/Canada"}
               </div>
             </div>
           </Link>
 
           {/* Desktop nav */}
-          <nav className="tp-nav-desktop" style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <nav
+            className="tp-nav-desktop"
+            style={{
+              display: "flex",
+              gap: 6,
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+              alignItems: "center",
+            }}
+          >
             {LINKS.map((l) => {
               const active = pathname === l.href;
               return (
                 <Link
                   key={l.href}
                   href={l.href}
+                  className="tp-pill"
                   style={{
                     padding: "8px 10px",
                     borderRadius: 999,
-                    border: active ? "1px solid rgba(124,58,237,0.45)" : "1px solid rgba(148,163,184,0.35)",
-                    background: active ? "rgba(124,58,237,0.10)" : "rgba(255,255,255,0.55)",
+                    border: active
+                      ? "1px solid rgba(124,58,237,0.55)"
+                      : "1px solid rgba(148,163,184,0.35)",
+                    background: active ? "rgba(124,58,237,0.12)" : "rgba(255,255,255,0.55)",
                     color: "#0f172a",
                     textDecoration: "none",
                     fontSize: 13,
-                    fontWeight: 800,
                     boxShadow: active ? "0 10px 20px rgba(124,58,237,0.10)" : "none",
                   }}
                 >
@@ -108,11 +128,27 @@ export default function TopNav() {
                 </Link>
               );
             })}
+
+            <button
+              onClick={logout}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 999,
+                border: "1px solid rgba(148,163,184,0.35)",
+                background: "rgba(255,255,255,0.75)",
+                cursor: "pointer",
+                fontWeight: 600,
+                marginLeft: 4,
+              }}
+              title="Déconnexion"
+            >
+              Déconnexion
+            </button>
           </nav>
 
           {/* Mobile button */}
           <button
-            className="tp-nav-mobile"
+            className="tp-nav-mobile tp-pill"
             onClick={() => setOpen((v) => !v)}
             style={{
               padding: "10px 14px",
@@ -120,7 +156,6 @@ export default function TopNav() {
               border: "1px solid rgba(148,163,184,0.35)",
               background: "rgba(255,255,255,0.75)",
               cursor: "pointer",
-              fontWeight: 900,
             }}
             aria-label="Ouvrir le menu"
           >
@@ -146,14 +181,16 @@ export default function TopNav() {
                 <Link
                   key={l.href}
                   href={l.href}
+                  className="tp-pill"
                   style={{
                     padding: "12px 12px",
                     borderRadius: 14,
-                    border: active ? "1px solid rgba(124,58,237,0.45)" : "1px solid rgba(148,163,184,0.25)",
-                    background: active ? "rgba(124,58,237,0.10)" : "rgba(255,255,255,0.65)",
+                    border: active
+                      ? "1px solid rgba(124,58,237,0.55)"
+                      : "1px solid rgba(148,163,184,0.25)",
+                    background: active ? "rgba(124,58,237,0.12)" : "rgba(255,255,255,0.65)",
                     textDecoration: "none",
                     color: "#0f172a",
-                    fontWeight: 900,
                   }}
                 >
                   {l.label}
@@ -169,7 +206,7 @@ export default function TopNav() {
                 borderRadius: 14,
                 border: "none",
                 color: "white",
-                fontWeight: 900,
+                fontWeight: 700,
                 cursor: "pointer",
                 marginTop: 4,
               }}
@@ -180,7 +217,7 @@ export default function TopNav() {
         ) : null}
       </div>
 
-      {/* CSS responsive */}
+      {/* CSS responsive + hover */}
       <style jsx global>{`
         @media (max-width: 980px) {
           .tp-nav-desktop {
@@ -197,6 +234,12 @@ export default function TopNav() {
           .tp-nav-mobile {
             display: none !important;
           }
+        }
+
+        /* Hover subtil (desktop) */
+        .tp-nav-desktop a.tp-pill:hover {
+          transform: translateY(-1px);
+          transition: transform 120ms ease;
         }
       `}</style>
     </header>
