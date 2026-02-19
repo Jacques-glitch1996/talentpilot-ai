@@ -1,41 +1,30 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+/* Force un rendu "light" lisible, même si le système est en dark mode */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --tp-blue: #1E40AF;
+  --tp-violet: #7C3AED;
+
+  /* Texte sombre lisible */
+  --tp-text: #0f172a;      /* slate-900 */
+  --tp-text-muted: #475569; /* slate-600 */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html, body {
+  color-scheme: light; /* évite les comportements auto dark */
+  color: var(--tp-text);
+  background: #ffffff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-:root{
-  --tp-blue:#1E40AF;
-  --tp-violet:#7C3AED;
-}
-
-/* Gradient animé (comme Base44) */
+/* --- Gradient animé (comme Base44) --- */
 @keyframes tp-gradient {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
 
-.tp-gradient-text{
+.tp-gradient-text {
   background: linear-gradient(135deg, var(--tp-blue), var(--tp-violet), var(--tp-blue));
   background-size: 200% 200%;
   animation: tp-gradient 3s ease infinite;
@@ -44,64 +33,40 @@ body {
   background-clip: text;
 }
 
-.tp-gradient-bg{
+.tp-gradient-bg {
   background: linear-gradient(135deg, var(--tp-blue), var(--tp-violet), var(--tp-blue));
   background-size: 200% 200%;
   animation: tp-gradient 3s ease infinite;
 }
 
-/* Glassmorphism pro */
-.tp-glass{
-  background: rgba(255,255,255,0.65);
+/* --- Glassmorphism pro --- */
+.tp-glass {
+  background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.6);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+
+  /* IMPORTANT: assure le texte sombre dans les cartes */
+  color: var(--tp-text);
 }
 
-/* Fond discret futuriste */
-.tp-app-bg{
-  background:
-    radial-gradient(1200px 600px at 15% 0%, rgba(30,64,175,0.18), transparent 55%),
-    radial-gradient(1000px 600px at 85% 10%, rgba(124,58,237,0.18), transparent 55%),
-    linear-gradient(to bottom, #f8fafc, #ffffff);
-}
-
-:root{
-  --tp-blue:#1E40AF;
-  --tp-violet:#7C3AED;
-}
-
-@keyframes tp-gradient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-.tp-gradient-text{
-  background: linear-gradient(135deg, var(--tp-blue), var(--tp-violet), var(--tp-blue));
-  background-size: 200% 200%;
-  animation: tp-gradient 3s ease infinite;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.tp-gradient-bg{
-  background: linear-gradient(135deg, var(--tp-blue), var(--tp-violet), var(--tp-blue));
-  background-size: 200% 200%;
-  animation: tp-gradient 3s ease infinite;
-}
-
-.tp-glass{
-  background: rgba(255,255,255,0.65);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.6);
-}
-
-.tp-app-bg{
+/* --- Fond discret futuriste --- */
+.tp-app-bg {
   background:
     radial-gradient(1200px 600px at 15% 0%, rgba(30,64,175,0.18), transparent 55%),
     radial-gradient(1000px 600px at 85% 10%, rgba(124,58,237,0.18), transparent 55%),
     linear-gradient(to bottom, #f8fafc, #ffffff);
   min-height: 100vh;
+
+  /* IMPORTANT: assure le texte sombre sur tout le fond */
+  color: var(--tp-text);
+}
+
+/* Harmonisation légère de typographie */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--tp-text);
+}
+
+p, span, div, label, input, textarea, select, button {
+  color: inherit;
 }
