@@ -27,7 +27,6 @@ export default function TopNav() {
   const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
-    // Fermer le menu quand on change de route
     setOpen(false);
   }, [pathname]);
 
@@ -56,13 +55,13 @@ export default function TopNav() {
           maxWidth: 1200,
           margin: "0 auto",
           borderRadius: 18,
-          padding: "12px 12px",
+          padding: "12px",
           boxShadow: "0 10px 30px rgba(2,6,23,0.08)",
         }}
       >
-        {/* Top row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          {/* Brand */}
+
+          {/* BRAND */}
           <Link
             href="/dashboard"
             style={{
@@ -80,48 +79,44 @@ export default function TopNav() {
                 height: 36,
                 borderRadius: 12,
                 boxShadow: "0 10px 20px rgba(30,64,175,0.25)",
-                flex: "0 0 auto",
               }}
             />
-            <div style={{ lineHeight: "18px" }}>
-              <div className="tp-gradient-text" style={{ fontWeight: 800, fontSize: 16 }}>
+            <div>
+              <div className="tp-gradient-text" style={{ fontWeight: 700, fontSize: 16 }}>
                 TalentPilot AI
               </div>
-              <div className="tp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+              <div className="tp-muted" style={{ fontSize: 12 }}>
                 {email ? email : "Recruiting OS • Québec/Canada"}
               </div>
             </div>
           </Link>
 
-          {/* Desktop nav */}
-          <nav
-            className="tp-nav-desktop"
-            style={{
-              display: "flex",
-              gap: 6,
-              flexWrap: "wrap",
-              justifyContent: "flex-end",
-              alignItems: "center",
-            }}
-          >
+          {/* DESKTOP NAV */}
+          <nav className="tp-nav-desktop" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {LINKS.map((l) => {
               const active = pathname === l.href;
+
               return (
                 <Link
                   key={l.href}
                   href={l.href}
-                  className="tp-pill"
                   style={{
-                    padding: "8px 10px",
+                    padding: "8px 12px",
                     borderRadius: 999,
                     border: active
                       ? "1px solid rgba(124,58,237,0.55)"
                       : "1px solid rgba(148,163,184,0.35)",
-                    background: active ? "rgba(124,58,237,0.12)" : "rgba(255,255,255,0.55)",
+                    background: active
+                      ? "rgba(124,58,237,0.12)"
+                      : "rgba(255,255,255,0.55)",
                     color: "#0f172a",
                     textDecoration: "none",
                     fontSize: 13,
-                    boxShadow: active ? "0 10px 20px rgba(124,58,237,0.10)" : "none",
+                    fontWeight: active ? 600 : 500, // 👈 ICI la magie
+                    boxShadow: active
+                      ? "0 10px 20px rgba(124,58,237,0.10)"
+                      : "none",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   {l.label}
@@ -138,17 +133,15 @@ export default function TopNav() {
                 background: "rgba(255,255,255,0.75)",
                 cursor: "pointer",
                 fontWeight: 600,
-                marginLeft: 4,
               }}
-              title="Déconnexion"
             >
               Déconnexion
             </button>
           </nav>
 
-          {/* Mobile button */}
+          {/* MOBILE BUTTON */}
           <button
-            className="tp-nav-mobile tp-pill"
+            className="tp-nav-mobile"
             onClick={() => setOpen((v) => !v)}
             style={{
               padding: "10px 14px",
@@ -156,15 +149,15 @@ export default function TopNav() {
               border: "1px solid rgba(148,163,184,0.35)",
               background: "rgba(255,255,255,0.75)",
               cursor: "pointer",
+              fontWeight: 600,
             }}
-            aria-label="Ouvrir le menu"
           >
             {open ? "Fermer" : activeLabel}
           </button>
         </div>
 
-        {/* Mobile panel */}
-        {open ? (
+        {/* MOBILE PANEL */}
+        {open && (
           <div
             className="tp-nav-mobile"
             style={{
@@ -177,20 +170,23 @@ export default function TopNav() {
           >
             {LINKS.map((l) => {
               const active = pathname === l.href;
+
               return (
                 <Link
                   key={l.href}
                   href={l.href}
-                  className="tp-pill"
                   style={{
-                    padding: "12px 12px",
+                    padding: "12px",
                     borderRadius: 14,
                     border: active
                       ? "1px solid rgba(124,58,237,0.55)"
                       : "1px solid rgba(148,163,184,0.25)",
-                    background: active ? "rgba(124,58,237,0.12)" : "rgba(255,255,255,0.65)",
+                    background: active
+                      ? "rgba(124,58,237,0.12)"
+                      : "rgba(255,255,255,0.65)",
                     textDecoration: "none",
                     color: "#0f172a",
+                    fontWeight: active ? 600 : 500,
                   }}
                 >
                   {l.label}
@@ -202,22 +198,21 @@ export default function TopNav() {
               onClick={logout}
               className="tp-gradient-bg"
               style={{
-                padding: "12px 14px",
+                padding: "12px",
                 borderRadius: 14,
                 border: "none",
                 color: "white",
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: "pointer",
-                marginTop: 4,
+                marginTop: 6,
               }}
             >
               Déconnexion
             </button>
           </div>
-        ) : null}
+        )}
       </div>
 
-      {/* CSS responsive + hover */}
       <style jsx global>{`
         @media (max-width: 980px) {
           .tp-nav-desktop {
@@ -234,12 +229,6 @@ export default function TopNav() {
           .tp-nav-mobile {
             display: none !important;
           }
-        }
-
-        /* Hover subtil (desktop) */
-        .tp-nav-desktop a.tp-pill:hover {
-          transform: translateY(-1px);
-          transition: transform 120ms ease;
         }
       `}</style>
     </header>
