@@ -7,7 +7,9 @@ type ReqBody = {
   input: string;
 };
 
-const LIMIT_PER_HOUR = 100;
+const LIMIT_PER_HOUR_PER_USER = 100;
+const LIMIT_PER_HOUR_PER_ORG = 500; // filet de sécurité (ajustable)
+const MAX_INPUT_CHARS = 8000;
 
 function getBearerToken(req: Request) {
   const authHeader = req.headers.get("authorization") || "";
@@ -23,7 +25,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing type or input" }, { status: 400 });
     }
 
-    // ✅ Token uniquement via Authorization header
+    const input = String(body.input ?? "");
+    if (input.length > MAX_INPUT_CHARS) {
+      return NextResponse.json(
+        { error: `Input too long. Max ${MAX_INPUT_CHARS} characters.` },
+        { status: 413 }
+      );
+    }
+
+    // Token via Authorization header uniquement
     const token = getBearerToken(req);
     if (!token) {
       return NextResponse.json({ error: "Missing access token" }, { status: 401 });
@@ -38,44 +48,64 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing NEXT_PUBLIC_SUPABASE_ANON_KEY" }, { status: 500 });
     }
 
-    // Supabase client "impersonate user" -> RLS + current_org_id() OK
+    // Supabase "impersonate user" => RLS actif
     const supabase = createClient(supabaseUrl, supabaseAnon, {
       global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false },
     });
 
-    // Vérifier la session
+    // Vérifier session + récupérer user
     const { data: userData, error: userErr } = await supabase.auth.getUser();
     if (userErr || !userData?.user) {
       return NextResponse.json({ error: "Unauthorized (invalid session)" }, { status: 401 });
     }
+    const userId = userData.user.id;
 
-    // Rate limit 100/h (par org, car RLS filtre ai_logs sur org)
+    // Fenêtre 60 minutes
     const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count, error: countErr } = await supabase
+
+    // 1) Rate-limit par utilisateur
+    const { count: userCount, error: userCountErr } = await supabase
       .from("ai_logs")
       .select("*", { head: true, count: "exact" })
+      .eq("user_id", userId)
       .gte("created_at", since);
 
-    if (countErr) {
-      return NextResponse.json({ error: `Rate-limit check failed: ${countErr.message}` }, { status: 500 });
+    if (userCountErr) {
+      return NextResponse.json({ error: `Rate-limit check failed: ${userCountErr.message}` }, { status: 500 });
     }
 
-    if ((count ?? 0) >= LIMIT_PER_HOUR) {
+    if ((userCount ?? 0) >= LIMIT_PER_HOUR_PER_USER) {
       return NextResponse.json(
-        { error: `Rate limit exceeded. Max ${LIMIT_PER_HOUR} calls per hour.` },
+        { error: `Rate limit exceeded. Max ${LIMIT_PER_HOUR_PER_USER} calls per hour (per user).` },
         { status: 429 }
       );
     }
 
+    // 2) Filet de sécurité par org (RLS restreint déjà aux lignes de l'org)
+    const { count: orgCount, error: orgCountErr } = await supabase
+      .from("ai_logs")
+      .select("*", { head: true, count: "exact" })
+      .gte("created_at", since);
+
+    if (orgCountErr) {
+      return NextResponse.json({ error: `Rate-limit check failed: ${orgCountErr.message}` }, { status: 500 });
+    }
+
+    if ((orgCount ?? 0) >= LIMIT_PER_HOUR_PER_ORG) {
+      return NextResponse.json(
+        { error: `Organization rate limit exceeded. Please try again later.` },
+        { status: 429 }
+      );
+    }
+
+    // Appel IA (Claude)
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     if (!anthropicKey) {
       return NextResponse.json({ error: "Missing ANTHROPIC_API_KEY" }, { status: 500 });
     }
 
     const anthropic = new Anthropic({ apiKey: anthropicKey });
-
-    // Modèle économique
     const model = "claude-3-haiku-20240307";
 
     const system =
@@ -89,7 +119,7 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "user",
-          content: `TYPE: ${body.type}\n\nINPUT:\n${body.input}`,
+          content: `TYPE: ${body.type}\n\nINPUT:\n${input}`,
         },
       ],
     });
@@ -100,15 +130,14 @@ export async function POST(req: Request) {
         .map((c: any) => c.text)
         .join("\n\n") || "";
 
-    // Log en DB (organization_id + user_id par DEFAULT + RLS)
+    // Log DB (org_id + user_id via DEFAULT + RLS)
     const { error: logErr } = await supabase.from("ai_logs").insert({
       type: body.type,
-      input: body.input,
+      input,
       output,
     });
 
     if (logErr) {
-      // On ne bloque pas l'utilisateur si la génération est OK
       return NextResponse.json({ output, error: `AI ok but log failed: ${logErr.message}` }, { status: 200 });
     }
 
