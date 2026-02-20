@@ -19,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr">
-      <body className={`${inter.variable} tp-app-bg`}>
+    <html lang="fr" suppressHydrationWarning>
+      <body className={`${inter.variable} tp-app-bg`} suppressHydrationWarning>
         {children}
       </body>
     </html>

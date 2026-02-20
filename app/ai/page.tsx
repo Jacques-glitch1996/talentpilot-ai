@@ -28,6 +28,7 @@ export default function AIPage() {
 
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
+
     if (!token) {
       setBusy(false);
       router.push("/login");
@@ -37,8 +38,11 @@ export default function AIPage() {
     try {
       const res = await fetch("/api/ai/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, input, access_token: token }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type, input }),
       });
 
       const json = await res.json();
@@ -50,7 +54,7 @@ export default function AIPage() {
       }
 
       setOutput(json.output ?? "");
-      if (json?.error) setErr(json.error); // cas "log failed"
+      if (json?.error) setErr(json.error); // cas log failed
     } catch (e: any) {
       setBusy(false);
       setErr(e?.message ?? "Erreur réseau");
@@ -60,104 +64,99 @@ export default function AIPage() {
   return (
     <>
       <TopNav />
-
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px 50px" }}>
-        <div
-          className="tp-glass"
-          style={{
-            borderRadius: 24,
-            padding: 24,
-            boxShadow: "0 20px 40px rgba(2,6,23,0.08)",
-          }}
-        >
-          <div style={{ marginBottom: 20 }}>
-            <h1 style={{ margin: 0 }}>Génération AI</h1>
-            <div style={{ opacity: 0.65, marginTop: 6 }}>
-              Créez rapidement des contenus RH prêts à l’emploi.
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-            {/* INPUT */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "18px 16px 40px" }}>
+        <div className="tp-glass" style={{ borderRadius: 18, padding: 16, boxShadow: "0 10px 30px rgba(2,6,23,0.08)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>
-              <div style={{ marginBottom: 10, fontWeight: 800 }}>Configuration</div>
-
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: 12,
-                  borderRadius: 14,
-                  border: "1px solid rgba(148,163,184,0.4)",
-                  background: "rgba(255,255,255,0.75)",
-                  marginBottom: 12,
-                }}
-              >
-                <option value="job_description">Job Description</option>
-                <option value="outreach">Outreach</option>
-                <option value="interview">Interview</option>
-              </select>
-
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Collez ici les informations (poste, stack, ton, contexte, etc.)"
-                rows={10}
-                style={{
-                  width: "100%",
-                  padding: 14,
-                  borderRadius: 16,
-                  border: "1px solid rgba(148,163,184,0.4)",
-                  background: "rgba(255,255,255,0.75)",
-                  resize: "none",
-                }}
-              />
-
-              <div style={{ marginTop: 14 }}>
-                <button
-                  onClick={run}
-                  disabled={busy || !input.trim()}
-                  className="tp-gradient-bg"
-                  style={{
-                    width: "100%",
-                    padding: 14,
-                    borderRadius: 999,
-                    border: "none",
-                    color: "white",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    boxShadow: "0 10px 25px rgba(124,58,237,0.3)",
-                    opacity: busy || !input.trim() ? 0.75 : 1,
-                  }}
-                >
-                  {busy ? "Génération en cours..." : "Générer"}
-                </button>
+              <h1 style={{ margin: 0, fontSize: 22 }}>Génération AI</h1>
+              <div className="tp-muted" style={{ marginTop: 6 }}>
+                Générez des contenus RH prêts à utiliser (Québec / Canada).
               </div>
-
-              {err ? <div style={{ color: "crimson", marginTop: 12 }}>❌ {err}</div> : null}
             </div>
 
-            {/* OUTPUT */}
-            <div>
-              <div style={{ marginBottom: 10, fontWeight: 800 }}>Résultat</div>
-
-              <textarea
-                value={output}
-                readOnly
-                placeholder="Résultat..."
-                rows={14}
-                style={{
-                  width: "100%",
-                  padding: 16,
-                  borderRadius: 16,
-                  border: "1px solid rgba(148,163,184,0.4)",
-                  background: "rgba(255,255,255,0.85)",
-                  resize: "none",
-                }}
-              />
-            </div>
+            <button
+              onClick={run}
+              disabled={busy || !input.trim()}
+              className="tp-gradient-bg"
+              style={{
+                padding: "10px 16px",
+                borderRadius: 999,
+                border: "none",
+                color: "white",
+                fontWeight: 700,
+                cursor: busy || !input.trim() ? "not-allowed" : "pointer",
+                opacity: busy || !input.trim() ? 0.65 : 1,
+                boxShadow: "0 12px 26px rgba(124,58,237,0.20)",
+              }}
+            >
+              {busy ? "Génération..." : "Générer"}
+            </button>
           </div>
+
+          <div style={{ height: 14 }} />
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div className="tp-pill" style={{ fontSize: 13, opacity: 0.8, alignSelf: "center" }}>
+              Type
+            </div>
+
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: "1px solid rgba(148,163,184,0.35)",
+                background: "rgba(255,255,255,0.8)",
+                minWidth: 220,
+                outline: "none",
+              }}
+            >
+              <option value="job_description">Offre d’emploi</option>
+              <option value="outreach">Message de prospection</option>
+              <option value="interview">Questions d’entrevue</option>
+            </select>
+          </div>
+
+          <div style={{ height: 14 }} />
+
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Collez ici les informations (poste, stack, seniorité, ton, contexte, etc.)"
+            rows={7}
+            style={{
+              width: "100%",
+              padding: 14,
+              borderRadius: 14,
+              border: "1px solid rgba(148,163,184,0.35)",
+              background: "rgba(255,255,255,0.85)",
+              outline: "none",
+            }}
+          />
+
+          {err ? (
+            <div style={{ marginTop: 12, color: "crimson", fontWeight: 600 }}>
+              ❌ {err}
+            </div>
+          ) : null}
+
+          <div style={{ height: 12 }} />
+
+          <textarea
+            value={output}
+            readOnly
+            placeholder="Résultat..."
+            rows={12}
+            style={{
+              width: "100%",
+              padding: 14,
+              borderRadius: 14,
+              border: "1px solid rgba(148,163,184,0.35)",
+              background: "rgba(255,255,255,0.75)",
+              outline: "none",
+            }}
+          />
         </div>
       </div>
     </>
