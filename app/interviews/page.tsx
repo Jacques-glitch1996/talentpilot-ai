@@ -1,29 +1,77 @@
 "use client";
 
 import TopNav from "@/components/TopNav";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type Interview = {
   id: string;
   candidate_id: string;
-  job_post_id: string;
-  interview_date: string | null;
+  type: string;
+  status: string;
+  scheduled_at: string | null;
   notes: string | null;
   created_at: string;
 };
 
+const inputStyle: CSSProperties = {
+  padding: 14,
+  borderRadius: 16,
+  border: "1px solid rgba(148,163,184,0.4)",
+  background: "rgba(255,255,255,0.85)",
+  outline: "none",
+  width: "100%",
+};
+
+const ghostBtn: CSSProperties = {
+  padding: "10px 14px",
+  borderRadius: 999,
+  border: "1px solid rgba(148,163,184,0.35)",
+  background: "rgba(255,255,255,0.85)",
+  cursor: "pointer",
+  fontWeight: 900,
+};
+
+function toIsoOrNull(value: string): string | null {
+  const v = value.trim();
+  if (!v) return null;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 export default function InterviewsPage() {
   const router = useRouter();
 
-  const [items, setItems] = useState<Interview[]>([]);
-  const [candidateId, setCandidateId] = useState("");
-  const [jobPostId, setJobPostId] = useState("");
-  const [interviewDate, setInterviewDate] = useState(""); // datetime-local string
-  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+
+  const [list, setList] = useState<Interview[]>([]);
+
+  // Form
+  const [candidateId, setCandidateId] = useState("");
+  const [type, setType] = useState("Téléphonique");
+  const [status, setStatus] = useState("planned");
+  const [scheduledAt, setScheduledAt] = useState(""); // datetime-local
+  const [notes, setNotes] = useState("");
+
+  const refresh = useCallback(async () => {
+    setErr("");
+
+    const { data, error } = await supabase
+      .from("interviews")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setErr(error.message);
+      setList([]);
+      return;
+    }
+
+    setList((data ?? []) as Interview[]);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -35,41 +83,27 @@ export default function InterviewsPage() {
       await refresh();
       setLoading(false);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, [router, refresh]);
 
-  const refresh = async () => {
+  const add = async () => {
     setErr("");
-    const { data, error } = await supabase
-      .from("interviews")
-      .select("*")
-      .order("created_at", { ascending: false });
 
-    if (error) {
-      setErr(error.message);
-      setItems([]);
-      return;
-    }
-    setItems((data ?? []) as Interview[]);
-  };
-
-  const addInterview = async () => {
-    setErr("");
-    if (!candidateId.trim() || !jobPostId.trim()) {
-      setErr("Candidate ID et Job Post ID sont requis.");
+    if (!candidateId.trim()) {
+      setErr("Candidate ID est requis.");
       return;
     }
 
-    const iso = interviewDate ? new Date(interviewDate).toISOString() : null;
+    const payload = {
+      candidate_id: candidateId.trim(),
+      type: type.trim() || "Téléphonique",
+      status: status.trim() || "planned",
+      scheduled_at: toIsoOrNull(scheduledAt),
+      notes: notes.trim() || null,
+    };
 
     const { data, error } = await supabase
       .from("interviews")
-      .insert({
-        candidate_id: candidateId.trim(),
-        job_post_id: jobPostId.trim(),
-        interview_date: iso,
-        notes: notes.trim() || null,
-      })
+      .insert(payload)
       .select()
       .single();
 
@@ -78,163 +112,183 @@ export default function InterviewsPage() {
       return;
     }
 
-    setItems([data as Interview, ...items]);
+    setList((prev) => [data as Interview, ...prev]);
     setCandidateId("");
-    setJobPostId("");
-    setInterviewDate("");
+    setType("Téléphonique");
+    setStatus("planned");
+    setScheduledAt("");
     setNotes("");
   };
 
-  const humanDate = (iso?: string | null) => {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleString();
-  };
-
-  const grouped = useMemo(() => {
-    const map = new Map<string, Interview[]>();
-    for (const it of items) {
-      const key = (it.interview_date ?? it.created_at).slice(0, 10);
-      map.set(key, [...(map.get(key) ?? []), it]);
-    }
-    return Array.from(map.entries()).sort(([a], [b]) => (a < b ? 1 : -1));
-  }, [items]);
+  const human = useMemo(() => {
+    return (iso: string | null) => {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleString();
+    };
+  }, []);
 
   return (
     <>
       <TopNav />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px 50px" }}>
+      <div style={{ padding: 22, maxWidth: 1200, margin: "0 auto" }}>
+        <div className="tp-section-header">
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 900 }}>Entrevues</div>
+            <div className="tp-muted" style={{ marginTop: 6 }}>
+              Planifiez et suivez vos entrevues.
+            </div>
+          </div>
+
+          <div className="tp-actions">
+            <button onClick={refresh} style={ghostBtn} title="Recharger">
+              Actualiser
+            </button>
+          </div>
+        </div>
+
+        {/* FORM */}
         <div
           className="tp-glass"
           style={{
-            borderRadius: 24,
-            padding: 24,
-            boxShadow: "0 20px 40px rgba(2,6,23,0.08)",
+            padding: 16,
+            borderRadius: 22,
+            border: "1px solid rgba(148,163,184,0.25)",
           }}
         >
-          <div style={{ marginBottom: 20 }}>
-            <h1 style={{ margin: 0 }}>Entrevues</h1>
-            <div style={{ opacity: 0.6, marginTop: 6 }}>
-              Planification et suivi des entrevues.
-            </div>
-          </div>
-
-          {/* FORM */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: "1fr 220px 180px 260px",
               gap: 12,
-              marginBottom: 18,
+              alignItems: "center",
             }}
           >
             <input
-              placeholder="Candidate ID (uuid)"
               value={candidateId}
               onChange={(e) => setCandidateId(e.target.value)}
+              placeholder="Candidate ID"
               style={inputStyle}
             />
-            <input
-              placeholder="Job Post ID (uuid)"
-              value={jobPostId}
-              onChange={(e) => setJobPostId(e.target.value)}
-              style={inputStyle}
-            />
+
+            <select value={type} onChange={(e) => setType(e.target.value)} style={inputStyle}>
+              <option value="Téléphonique">Téléphonique</option>
+              <option value="Technique">Technique</option>
+              <option value="Client">Client</option>
+              <option value="RH">RH</option>
+              <option value="Autre">Autre</option>
+            </select>
+
+            <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
+              <option value="planned">Planned</option>
+              <option value="done">Done</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
 
             <input
               type="datetime-local"
-              value={interviewDate}
-              onChange={(e) => setInterviewDate(e.target.value)}
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
               style={inputStyle}
-            />
-
-            <button
-              onClick={addInterview}
-              className="tp-gradient-bg"
-              style={{
-                padding: "12px 20px",
-                borderRadius: 999,
-                border: "none",
-                color: "white",
-                fontWeight: 800,
-                cursor: "pointer",
-              }}
-            >
-              Ajouter une entrevue
-            </button>
-
-            <textarea
-              placeholder="Notes (optionnel)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              style={{ ...inputStyle, gridColumn: "1 / -1", resize: "none" }}
             />
           </div>
 
-          {err ? <div style={{ color: "crimson", marginBottom: 14 }}>❌ {err}</div> : null}
+          <div style={{ height: 12 }} />
 
-          {/* LIST */}
-          {loading ? (
-            <div>Chargement...</div>
-          ) : (
-            <div style={{ display: "grid", gap: 14 }}>
-              {grouped.map(([day, list]) => (
-                <div key={day} style={{ border: "1px solid rgba(148,163,184,0.25)", borderRadius: 18, padding: 14 }}>
-                  <div style={{ fontWeight: 900, marginBottom: 10 }}>{day}</div>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Notes (optionnel)"
+            rows={4}
+            style={inputStyle}
+          />
 
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {list.map((it) => (
-                      <div
-                        key={it.id}
-                        style={{
-                          padding: 14,
-                          borderRadius: 16,
-                          background: "rgba(255,255,255,0.85)",
-                          border: "1px solid rgba(148,163,184,0.25)",
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                          <div style={{ fontWeight: 800 }}>Entrevue</div>
-                          <div style={{ fontSize: 12, opacity: 0.7 }}>
-                            {humanDate(it.interview_date)}
-                          </div>
-                        </div>
+          {err ? (
+            <div style={{ marginTop: 12, color: "crimson", fontWeight: 900 }}>
+              ❌ {err}
+            </div>
+          ) : null}
 
-                        <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
-                          <div>
-                            <b>Candidate ID :</b> {it.candidate_id}
-                          </div>
-                          <div>
-                            <b>Job Post ID :</b> {it.job_post_id}
-                          </div>
-                        </div>
+          <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              onClick={add}
+              className="tp-gradient-bg"
+              style={{
+                padding: "12px 18px",
+                borderRadius: 999,
+                border: "none",
+                color: "white",
+                fontWeight: 900,
+                cursor: "pointer",
+              }}
+            >
+              Ajouter
+            </button>
+            <button
+              onClick={() => {
+                setCandidateId("");
+                setType("Téléphonique");
+                setStatus("planned");
+                setScheduledAt("");
+                setNotes("");
+                setErr("");
+              }}
+              style={ghostBtn}
+            >
+              Réinitialiser
+            </button>
+          </div>
+        </div>
 
-                        {it.notes ? (
-                          <div style={{ marginTop: 10, fontSize: 14 }}>
-                            {it.notes}
-                          </div>
-                        ) : null}
-                      </div>
-                    ))}
+        <div style={{ height: 16 }} />
+
+        {/* LIST */}
+        {loading ? (
+          <div>Chargement...</div>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {list.map((it) => (
+              <div
+                key={it.id}
+                style={{
+                  padding: 14,
+                  borderRadius: 18,
+                  background: "rgba(255,255,255,0.85)",
+                  border: "1px solid rgba(148,163,184,0.25)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ fontWeight: 900 }}>
+                    {it.type || "Entrevue"} • {it.status || "—"}
+                  </div>
+                  <div className="tp-muted" style={{ fontSize: 12 }}>
+                    {human(it.created_at)}
                   </div>
                 </div>
-              ))}
 
-              {items.length === 0 ? <div style={{ opacity: 0.7 }}>Aucune entrevue pour le moment.</div> : null}
-            </div>
-          )}
-        </div>
+                <div style={{ marginTop: 8, fontSize: 13 }}>
+                  <div>
+                    <b>Candidate ID :</b> {it.candidate_id}
+                  </div>
+                  <div style={{ marginTop: 4 }}>
+                    <b>Planifiée :</b> {human(it.scheduled_at)}
+                  </div>
+                </div>
+
+                {it.notes ? (
+                  <div style={{ marginTop: 10, whiteSpace: "pre-wrap", opacity: 0.9 }}>
+                    {it.notes}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+
+            {list.length === 0 ? <div className="tp-muted">Aucune entrevue pour le moment.</div> : null}
+          </div>
+        )}
       </div>
     </>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 16,
-  border: "1px solid rgba(148,163,184,0.4)",
-  background: "rgba(255,255,255,0.85)",
-};
