@@ -1,7 +1,13 @@
 "use client";
 
 import TopNav from "@/components/TopNav";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -13,22 +19,61 @@ type AiLog = {
   created_at: string;
 };
 
+const inputStyle: CSSProperties = {
+  padding: 14,
+  borderRadius: 16,
+  border: "1px solid rgba(148,163,184,0.4)",
+  background: "rgba(255,255,255,0.85)",
+  outline: "none",
+};
+
+const ghostBtn: CSSProperties = {
+  padding: "10px 14px",
+  borderRadius: 999,
+  border: "1px solid rgba(148,163,184,0.35)",
+  background: "rgba(255,255,255,0.85)",
+  cursor: "pointer",
+  fontWeight: 800,
+};
+
 export default function HistoryPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-
   const [logs, setLogs] = useState<AiLog[]>([]);
 
   // Filtres
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [query, setQuery] = useState<string>("");
-  const [limit, setLimit] = useState<number>(50);
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [query, setQuery] = useState("");
+  const [limit, setLimit] = useState(50);
 
   // UI
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const refresh = useCallback(
+    async (nextLimit?: number) => {
+      setErr("");
+
+      const effectiveLimit = nextLimit ?? limit;
+
+      const { data, error } = await supabase
+        .from("ai_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(effectiveLimit);
+
+      if (error) {
+        setErr(error.message);
+        setLogs([]);
+        return;
+      }
+
+      setLogs((data ?? []) as AiLog[]);
+    },
+    [limit]
+  );
 
   useEffect(() => {
     (async () => {
@@ -37,29 +82,11 @@ export default function HistoryPage() {
         router.push("/login");
         return;
       }
+
       await refresh();
       setLoading(false);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
-
-  const refresh = async () => {
-    setErr("");
-
-    const { data, error } = await supabase
-      .from("ai_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      setErr(error.message);
-      setLogs([]);
-      return;
-    }
-
-    setLogs((data ?? []) as AiLog[]);
-  };
+  }, [router, refresh]);
 
   const types = useMemo(() => {
     const set = new Set<string>();
@@ -76,9 +103,7 @@ export default function HistoryPage() {
 
       if (!q) return true;
 
-      const hay =
-        `${l.type}\n${l.input}\n${l.output}`.toLowerCase();
-
+      const hay = `${l.type}\n${l.input}\n${l.output}`.toLowerCase();
       return hay.includes(q);
     });
   }, [logs, typeFilter, query]);
@@ -109,49 +134,48 @@ export default function HistoryPage() {
     <>
       <TopNav />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px 50px" }}>
-        <div
-          className="tp-glass"
-          style={{
-            borderRadius: 24,
-            padding: 24,
-            boxShadow: "0 20px 40px rgba(2,6,23,0.08)",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <h1 style={{ margin: 0 }}>Historique</h1>
-              <div style={{ opacity: 0.65, marginTop: 6 }}>
-                Journal des générations AI (audit, traçabilité, qualité).
-              </div>
+      <div style={{ padding: 22, maxWidth: 1200, margin: "0 auto" }}>
+        <div className="tp-section-header">
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 900 }}>Historique</div>
+            <div className="tp-muted" style={{ marginTop: 6 }}>
+              Journal des générations AI (audit, traçabilité, qualité).
             </div>
+          </div>
 
+          <div className="tp-actions">
             <button
-              onClick={refresh}
+              onClick={() => refresh()}
               className="tp-gradient-bg"
               style={{
                 padding: "12px 18px",
                 borderRadius: 999,
                 border: "none",
                 color: "white",
-                fontWeight: 800,
+                fontWeight: 900,
                 cursor: "pointer",
               }}
             >
               Actualiser
             </button>
           </div>
+        </div>
 
-          <div style={{ height: 16 }} />
-
-          {/* Filtres */}
+        {/* Filtres */}
+        <div
+          className="tp-glass"
+          style={{
+            padding: 16,
+            borderRadius: 22,
+            border: "1px solid rgba(148,163,184,0.25)",
+          }}
+        >
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "240px 1fr 160px auto",
               gap: 12,
               alignItems: "center",
-              marginBottom: 16,
             }}
           >
             <select
@@ -175,7 +199,11 @@ export default function HistoryPage() {
 
             <select
               value={String(limit)}
-              onChange={(e) => setLimit(Number(e.target.value))}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setLimit(next);
+                refresh(next); // ✅ plus de closure périmée
+              }}
               style={inputStyle}
             >
               <option value="25">25 derniers</option>
@@ -185,133 +213,115 @@ export default function HistoryPage() {
             </select>
 
             <button
-              onClick={refresh}
-              style={{
-                padding: "12px 16px",
-                borderRadius: 999,
-                border: "1px solid rgba(148,163,184,0.35)",
-                background: "rgba(255,255,255,0.85)",
-                cursor: "pointer",
-                fontWeight: 800,
-              }}
-              title="Appliquer limite / recharger"
+              onClick={() => refresh()}
+              style={ghostBtn}
+              title="Recharger avec la limite courante"
             >
               Appliquer
             </button>
           </div>
 
-          {err ? <div style={{ color: "crimson", marginBottom: 14 }}>❌ {err}</div> : null}
+          {err ? (
+            <div style={{ marginTop: 12, color: "#b91c1c", fontWeight: 900 }}>
+              ❌ {err}
+            </div>
+          ) : null}
+        </div>
 
-          {/* Liste */}
-          {loading ? (
-            <div>Chargement...</div>
-          ) : (
-            <>
-              <div style={{ opacity: 0.7, fontSize: 13, marginBottom: 12 }}>
-                {filtered.length} résultat(s) affiché(s)
-              </div>
+        <div style={{ height: 16 }} />
 
-              <div style={{ display: "grid", gap: 14 }}>
-                {filtered.map((l) => {
-                  const expanded = expandedId === l.id;
+        {/* Liste */}
+        {loading ? (
+          <div>Chargement...</div>
+        ) : (
+          <>
+            <div className="tp-muted" style={{ marginBottom: 10 }}>
+              {filtered.length} résultat(s) affiché(s)
+            </div>
 
-                  return (
+            <div style={{ display: "grid", gap: 12 }}>
+              {filtered.map((l) => {
+                const expanded = expandedId === l.id;
+
+                return (
+                  <div
+                    key={l.id}
+                    style={{
+                      padding: 16,
+                      borderRadius: 18,
+                      background: "rgba(255,255,255,0.8)",
+                      border: "1px solid rgba(148,163,184,0.3)",
+                    }}
+                  >
                     <div
-                      key={l.id}
                       style={{
-                        padding: 16,
-                        borderRadius: 18,
-                        background: "rgba(255,255,255,0.85)",
-                        border: "1px solid rgba(148,163,184,0.25)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        marginBottom: 10,
                       }}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                          <span
-                            style={{
-                              padding: "4px 10px",
-                              borderRadius: 999,
-                              background: "rgba(124,58,237,0.10)",
-                              fontSize: 12,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {l.type || "unknown"}
-                          </span>
-
-                          <span style={{ fontSize: 12, opacity: 0.7 }}>
-                            {humanDate(l.created_at)}
-                          </span>
+                      <div>
+                        <div style={{ fontWeight: 900 }}>
+                          {l.type || "unknown"}
                         </div>
-
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button
-                            onClick={() => copy(l.id, l.output || "")}
-                            style={ghostBtn}
-                            title="Copier le résultat"
-                          >
-                            {copiedId === l.id ? "✅ Copié" : "Copier"}
-                          </button>
-
-                          <button
-                            onClick={() => setExpandedId(expanded ? null : l.id)}
-                            style={ghostBtn}
-                          >
-                            {expanded ? "Réduire" : "Détails"}
-                          </button>
+                        <div className="tp-muted" style={{ fontSize: 13 }}>
+                          {humanDate(l.created_at)}
                         </div>
                       </div>
 
-                      <div style={{ height: 10 }} />
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <button
+                          onClick={() => copy(l.id, l.output || "")}
+                          style={ghostBtn}
+                          title="Copier le résultat"
+                        >
+                          {copiedId === l.id ? "✅ Copié" : "Copier"}
+                        </button>
 
-                      <div style={{ fontSize: 13, opacity: 0.8 }}>
-                        <b>Input :</b> {expanded ? (l.input || "—") : short(l.input || "—")}
-                      </div>
-
-                      <div style={{ height: 10 }} />
-
-                      <div style={{ fontSize: 13, opacity: 0.85 }}>
-                        <b>Output :</b> {expanded ? (l.output || "—") : short(l.output || "—")}
+                        <button
+                          onClick={() => setExpandedId(expanded ? null : l.id)}
+                          style={ghostBtn}
+                        >
+                          {expanded ? "Réduire" : "Détails"}
+                        </button>
                       </div>
                     </div>
-                  );
-                })}
 
-                {filtered.length === 0 ? (
-                  <div style={{ opacity: 0.75 }}>
-                    Aucun élément ne correspond à vos filtres.
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <div>
+                        <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                          Input :
+                        </div>
+                        <div style={{ whiteSpace: "pre-wrap" }}>
+                          {expanded ? l.input || "—" : short(l.input || "—")}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                          Output :
+                        </div>
+                        <div style={{ whiteSpace: "pre-wrap" }}>
+                          {expanded ? l.output || "—" : short(l.output || "—")}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ) : null}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+                );
+              })}
 
-      {/* Responsive simple */}
-      <style jsx global>{`
-        @media (max-width: 980px) {
-          .tp-history-filters {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+              {filtered.length === 0 ? (
+                <div className="tp-muted">
+                  Aucun élément ne correspond à vos filtres.
+                </div>
+              ) : null}
+            </div>
+          </>
+        )}
+      </div>
     </>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 16,
-  border: "1px solid rgba(148,163,184,0.4)",
-  background: "rgba(255,255,255,0.85)",
-};
-
-const ghostBtn: React.CSSProperties = {
-  padding: "10px 14px",
-  borderRadius: 999,
-  border: "1px solid rgba(148,163,184,0.35)",
-  background: "rgba(255,255,255,0.85)",
-  cursor: "pointer",
-  fontWeight: 800,
-};
