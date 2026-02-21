@@ -5,6 +5,26 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
+type ApiResponse = {
+  output?: string;
+  error?: string;
+};
+
+function getErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  return "Erreur réseau";
+}
+
+function asApiResponse(json: unknown): ApiResponse {
+  if (typeof json !== "object" || json === null) return {};
+  const obj = json as Record<string, unknown>;
+  return {
+    output: typeof obj.output === "string" ? obj.output : undefined,
+    error: typeof obj.error === "string" ? obj.error : undefined,
+  };
+}
+
 export default function AIPage() {
   const router = useRouter();
 
@@ -45,118 +65,120 @@ export default function AIPage() {
         body: JSON.stringify({ type, input }),
       });
 
-      const json = await res.json();
+      const jsonUnknown: unknown = await res.json().catch(() => ({}));
+      const json = asApiResponse(jsonUnknown);
+
       setBusy(false);
 
       if (!res.ok) {
-        setErr(json?.error ?? "Erreur inconnue");
+        setErr(json.error ?? "Erreur inconnue");
         return;
       }
 
       setOutput(json.output ?? "");
-      if (json?.error) setErr(json.error); // cas log failed
-    } catch (e: any) {
+      if (json.error) setErr(json.error); // cas "AI ok but log failed"
+    } catch (e: unknown) {
       setBusy(false);
-      setErr(e?.message ?? "Erreur réseau");
+      setErr(getErrorMessage(e));
     }
   };
 
   return (
     <>
       <TopNav />
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "18px 16px 40px" }}>
-        <div className="tp-glass" style={{ borderRadius: 18, padding: 16, boxShadow: "0 10px 30px rgba(2,6,23,0.08)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 22 }}>Génération AI</h1>
-              <div className="tp-muted" style={{ marginTop: 6 }}>
-                Générez des contenus RH prêts à utiliser (Québec / Canada).
-              </div>
-            </div>
 
-            <button
-              onClick={run}
-              disabled={busy || !input.trim()}
-              className="tp-gradient-bg"
-              style={{
-                padding: "10px 16px",
-                borderRadius: 999,
-                border: "none",
-                color: "white",
-                fontWeight: 700,
-                cursor: busy || !input.trim() ? "not-allowed" : "pointer",
-                opacity: busy || !input.trim() ? 0.65 : 1,
-                boxShadow: "0 12px 26px rgba(124,58,237,0.20)",
-              }}
-            >
-              {busy ? "Génération..." : "Générer"}
-            </button>
+      <div style={{ padding: 22, maxWidth: 1100, margin: "0 auto" }}>
+        <div className="tp-section-header">
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 900 }}>Génération AI</div>
+            <div className="tp-muted" style={{ marginTop: 6 }}>
+              Générez des contenus RH prêts à utiliser (Québec / Canada).
+            </div>
           </div>
+        </div>
 
-          <div style={{ height: 14 }} />
+        <div
+          className="tp-glass"
+          style={{
+            padding: 18,
+            borderRadius: 22,
+            border: "1px solid rgba(148,163,184,0.25)",
+          }}
+        >
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <label style={{ fontWeight: 800 }}>Type</label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(148,163,184,0.35)",
+                  background: "rgba(255,255,255,0.8)",
+                  minWidth: 220,
+                  outline: "none",
+                }}
+              >
+                <option value="job_description">Offre d’emploi</option>
+                <option value="outreach_message">Message de prospection</option>
+                <option value="interview_questions">Questions d’entrevue</option>
+              </select>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <div className="tp-pill" style={{ fontSize: 13, opacity: 0.8, alignSelf: "center" }}>
-              Type
+              <button
+                onClick={run}
+                disabled={busy}
+                className="tp-gradient-bg"
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: 999,
+                  border: "none",
+                  color: "white",
+                  fontWeight: 900,
+                  cursor: busy ? "not-allowed" : "pointer",
+                  opacity: busy ? 0.85 : 1,
+                }}
+              >
+                {busy ? "Génération..." : "Générer"}
+              </button>
             </div>
 
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Collez ici les informations (poste, stack, seniorité, ton, contexte, etc.)"
+              rows={7}
               style={{
-                padding: "10px 12px",
-                borderRadius: 12,
+                width: "100%",
+                padding: 14,
+                borderRadius: 14,
                 border: "1px solid rgba(148,163,184,0.35)",
-                background: "rgba(255,255,255,0.8)",
-                minWidth: 220,
+                background: "rgba(255,255,255,0.85)",
                 outline: "none",
               }}
-            >
-              <option value="job_description">Offre d’emploi</option>
-              <option value="outreach">Message de prospection</option>
-              <option value="interview">Questions d’entrevue</option>
-            </select>
+            />
+
+            {err ? (
+              <div style={{ marginTop: 2, color: "crimson", fontWeight: 700 }}>
+                ❌ {err}
+              </div>
+            ) : null}
+
+            <textarea
+              value={output}
+              readOnly
+              placeholder="Résultat..."
+              rows={12}
+              style={{
+                width: "100%",
+                padding: 14,
+                borderRadius: 14,
+                border: "1px solid rgba(148,163,184,0.35)",
+                background: "rgba(255,255,255,0.75)",
+                outline: "none",
+              }}
+            />
           </div>
-
-          <div style={{ height: 14 }} />
-
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Collez ici les informations (poste, stack, seniorité, ton, contexte, etc.)"
-            rows={7}
-            style={{
-              width: "100%",
-              padding: 14,
-              borderRadius: 14,
-              border: "1px solid rgba(148,163,184,0.35)",
-              background: "rgba(255,255,255,0.85)",
-              outline: "none",
-            }}
-          />
-
-          {err ? (
-            <div style={{ marginTop: 12, color: "crimson", fontWeight: 600 }}>
-              ❌ {err}
-            </div>
-          ) : null}
-
-          <div style={{ height: 12 }} />
-
-          <textarea
-            value={output}
-            readOnly
-            placeholder="Résultat..."
-            rows={12}
-            style={{
-              width: "100%",
-              padding: 14,
-              borderRadius: 14,
-              border: "1px solid rgba(148,163,184,0.35)",
-              background: "rgba(255,255,255,0.75)",
-              outline: "none",
-            }}
-          />
         </div>
       </div>
     </>
