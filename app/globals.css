@@ -6,12 +6,12 @@
 :root {
   --tp-blue: #1E40AF;
   --tp-violet: #7C3AED;
-
-  --tp-text: #0f172a;       /* slate-900 */
-  --tp-text-muted: #475569; /* slate-600 */
+  --tp-text: #0f172a;        /* slate-900 */
+  --tp-text-muted: #475569;  /* slate-600 */
 }
 
-html, body {
+html,
+body {
   color-scheme: light;
   color: var(--tp-text);
   background: #ffffff;
@@ -19,33 +19,82 @@ html, body {
 
 /* Police Inter (déjà injectée via layout.tsx) */
 body {
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
   letter-spacing: -0.01em;
   font-weight: 400; /* Inter Regular par défaut */
 }
 
 /* Hiérarchie typographique */
-h1 { font-weight: 700; letter-spacing: -0.02em; }
-h2 { font-weight: 700; letter-spacing: -0.02em; }
-h3 { font-weight: 600; letter-spacing: -0.015em; }
+h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+h2 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+h3 {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
 
 /* Textes secondaires */
-.tp-muted { color: var(--tp-text-muted); }
+.tp-muted {
+  color: var(--tp-text-muted);
+}
 
 /* Pills / labels / navigation */
-.tp-pill { font-weight: 500; }
+.tp-pill {
+  font-weight: 500;
+}
 
 /* Titres de cartes */
-.tp-card-title { font-weight: 600; }
+.tp-card-title {
+  font-weight: 600;
+}
+
+/* En-têtes de section (pages, cards, etc.) */
+.tp-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.tp-section-header h1,
+.tp-section-header h2,
+.tp-section-header h3 {
+  margin: 0;
+}
+
+.tp-section-header .tp-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
 
 /* --- Gradient animé --- */
 @keyframes tp-gradient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .tp-gradient-text {
-  background: linear-gradient(135deg, var(--tp-blue), var(--tp-violet), var(--tp-blue));
+  background: linear-gradient(
+    135deg,
+    var(--tp-blue),
+    var(--tp-violet),
+    var(--tp-blue)
+  );
   background-size: 200% 200%;
   animation: tp-gradient 3s ease infinite;
   -webkit-background-clip: text;
@@ -54,7 +103,12 @@ h3 { font-weight: 600; letter-spacing: -0.015em; }
 }
 
 .tp-gradient-bg {
-  background: linear-gradient(135deg, var(--tp-blue), var(--tp-violet), var(--tp-blue));
+  background: linear-gradient(
+    135deg,
+    var(--tp-blue),
+    var(--tp-violet),
+    var(--tp-blue)
+  );
   background-size: 200% 200%;
   animation: tp-gradient 3s ease infinite;
 }
@@ -70,9 +124,16 @@ h3 { font-weight: 600; letter-spacing: -0.015em; }
 
 /* --- Background --- */
 .tp-app-bg {
-  background:
-    radial-gradient(1200px 600px at 15% 0%, rgba(30,64,175,0.18), transparent 55%),
-    radial-gradient(1000px 600px at 85% 10%, rgba(124,58,237,0.18), transparent 55%),
+  background: radial-gradient(
+      1200px 600px at 15% 0%,
+      rgba(30, 64, 175, 0.18),
+      transparent 55%
+    ),
+    radial-gradient(
+      1000px 600px at 85% 10%,
+      rgba(124, 58, 237, 0.18),
+      transparent 55%
+    ),
     linear-gradient(to bottom, #f8fafc, #ffffff);
   min-height: 100vh;
   color: var(--tp-text);
