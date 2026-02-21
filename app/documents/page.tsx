@@ -1,7 +1,7 @@
 "use client";
 
 import TopNav from "@/components/TopNav";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -11,6 +11,20 @@ type DocRow = {
   file_url: string;
   file_type: string;
   created_at: string;
+};
+
+function getErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  return "Erreur upload";
+}
+
+const inputStyle: CSSProperties = {
+  padding: 14,
+  borderRadius: 16,
+  border: "1px solid rgba(148,163,184,0.4)",
+  background: "rgba(255,255,255,0.85)",
+  outline: "none",
 };
 
 export default function DocumentsPage() {
@@ -26,20 +40,7 @@ export default function DocumentsPage() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.push("/login");
-        return;
-      }
-      await refresh();
-      setLoading(false);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
-
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setErr("");
     const { data, error } = await supabase
       .from("documents")
@@ -52,7 +53,19 @@ export default function DocumentsPage() {
       return;
     }
     setItems((data ?? []) as DocRow[]);
-  };
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        router.push("/login");
+        return;
+      }
+      await refresh();
+      setLoading(false);
+    })();
+  }, [router, refresh]);
 
   const upload = async () => {
     setErr("");
@@ -70,15 +83,16 @@ export default function DocumentsPage() {
     setBusy(true);
 
     try {
-      const ext = (file.name.split(".").pop() || "bin").toLowerCase();
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `org/${candidateId.trim()}/${Date.now()}_${safeName}`;
 
       // 1) Upload storage
-      const { error: upErr } = await supabase.storage.from("documents").upload(path, file, {
-        upsert: false,
-        contentType: file.type || undefined,
-      });
+      const { error: upErr } = await supabase.storage
+        .from("documents")
+        .upload(path, file, {
+          upsert: false,
+          contentType: file.type || undefined,
+        });
 
       if (upErr) {
         setBusy(false);
@@ -87,13 +101,9 @@ export default function DocumentsPage() {
       }
 
       // 2) URL signée (optionnel pour ouvrir en cliquant)
-      const { data: signed, error: signErr } = await supabase.storage
+      const { data: signed } = await supabase.storage
         .from("documents")
         .createSignedUrl(path, 60 * 60); // 1h
-
-      if (signErr) {
-        // pas bloquant
-      }
 
       // 3) Insert table documents (on garde path, et on stocke aussi l’url signée pour MVP)
       const { data: row, error: insErr } = await supabase
@@ -112,29 +122,35 @@ export default function DocumentsPage() {
         return;
       }
 
-      setItems([row as DocRow, ...items]);
+      setItems((prev) => [row as DocRow, ...prev]);
       setFile(null);
       setOk("Document ajouté avec succès.");
       setBusy(false);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setBusy(false);
-      setErr(e?.message ?? "Erreur upload");
+      setErr(getErrorMessage(e));
     }
   };
 
   const openDoc = async (doc: DocRow) => {
     setErr("");
+
     // Si file_url est déjà une URL signée (MVP), on ouvre direct.
     if (doc.file_url.startsWith("http")) {
       window.open(doc.file_url, "_blank");
       return;
     }
+
     // Sinon, on signe à la volée (si on a stocké un path)
-    const { data, error } = await supabase.storage.from("documents").createSignedUrl(doc.file_url, 60 * 60);
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(doc.file_url, 60 * 60);
+
     if (error) {
       setErr(error.message);
       return;
     }
+
     window.open(data.signedUrl, "_blank");
   };
 
@@ -142,32 +158,45 @@ export default function DocumentsPage() {
     <>
       <TopNav />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px 50px" }}>
-        <div
-          className="tp-glass"
-          style={{
-            borderRadius: 24,
-            padding: 24,
-            boxShadow: "0 20px 40px rgba(2,6,23,0.08)",
-          }}
-        >
-          <div style={{ marginBottom: 20 }}>
-            <h1 style={{ margin: 0 }}>Documents</h1>
-            <div style={{ opacity: 0.6, marginTop: 6 }}>
+      <div style={{ padding: 22, maxWidth: 1100, margin: "0 auto" }}>
+        <div className="tp-section-header">
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 900 }}>Documents</div>
+            <div className="tp-muted" style={{ marginTop: 6 }}>
               Centralisez CV, rapports et fichiers générés.
             </div>
           </div>
+        </div>
 
-          {/* UPLOAD */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 220px 1fr auto", gap: 12, marginBottom: 18 }}>
+        {/* UPLOAD */}
+        <div
+          className="tp-glass"
+          style={{
+            padding: 16,
+            borderRadius: 22,
+            border: "1px solid rgba(148,163,184,0.25)",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 220px 1fr auto",
+              gap: 12,
+              alignItems: "center",
+            }}
+          >
             <input
-              placeholder="Candidate ID (uuid)"
               value={candidateId}
               onChange={(e) => setCandidateId(e.target.value)}
+              placeholder="Candidate ID"
               style={inputStyle}
             />
 
-            <select value={fileType} onChange={(e) => setFileType(e.target.value)} style={inputStyle}>
+            <select
+              value={fileType}
+              onChange={(e) => setFileType(e.target.value)}
+              style={inputStyle}
+            >
               <option value="CV">CV</option>
               <option value="Rapport">Rapport</option>
               <option value="Fichier IA">Fichier IA</option>
@@ -189,93 +218,102 @@ export default function DocumentsPage() {
                 borderRadius: 999,
                 border: "none",
                 color: "white",
-                fontWeight: 800,
-                cursor: "pointer",
-                opacity: busy ? 0.75 : 1,
+                fontWeight: 900,
+                cursor: busy ? "not-allowed" : "pointer",
+                opacity: busy ? 0.85 : 1,
               }}
             >
               {busy ? "Upload..." : "Ajouter"}
             </button>
           </div>
 
-          {err ? <div style={{ color: "crimson", marginBottom: 12 }}>❌ {err}</div> : null}
-          {ok ? <div style={{ color: "#166534", marginBottom: 12 }}>✅ {ok}</div> : null}
+          {err ? (
+            <div style={{ marginTop: 12, color: "crimson", fontWeight: 800 }}>
+              ❌ {err}
+            </div>
+          ) : null}
 
-          {/* LIST */}
-          {loading ? (
-            <div>Chargement...</div>
-          ) : (
-            <div style={{ display: "grid", gap: 14 }}>
-              {items.map((d) => (
-                <div
-                  key={d.id}
-                  style={{
-                    padding: 16,
-                    borderRadius: 18,
-                    background: "rgba(255,255,255,0.85)",
-                    border: "1px solid rgba(148,163,184,0.25)",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                    <div style={{ fontWeight: 900 }}>
-                      <span
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: 999,
-                          background: "rgba(30,64,175,0.10)",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          marginRight: 10,
-                        }}
-                      >
-                        {d.file_type}
-                      </span>
-                      Document
-                    </div>
+          {ok ? (
+            <div style={{ marginTop: 12, color: "green", fontWeight: 800 }}>
+              ✅ {ok}
+            </div>
+          ) : null}
+        </div>
 
-                    <div style={{ fontSize: 12, opacity: 0.65 }}>
-                      {new Date(d.created_at).toLocaleString()}
-                    </div>
-                  </div>
+        <div style={{ height: 16 }} />
 
-                  <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
-                    <b>Candidate ID :</b> {d.candidate_id}
-                  </div>
-
-                  <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button
-                      onClick={() => openDoc(d)}
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: 999,
-                        border: "1px solid rgba(148,163,184,0.35)",
-                        background: "white",
-                        cursor: "pointer",
-                        fontWeight: 700,
-                      }}
-                    >
-                      Ouvrir
-                    </button>
-
-                    <div style={{ fontSize: 12, opacity: 0.65, alignSelf: "center" }}>
-                      {d.file_url.startsWith("http") ? "URL signée" : "Path storage"}
-                    </div>
+        {/* LIST */}
+        {loading ? (
+          <div>Chargement...</div>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {items.map((d) => (
+              <div
+                key={d.id}
+                style={{
+                  padding: 14,
+                  borderRadius: 18,
+                  background: "rgba(255,255,255,0.85)",
+                  border: "1px solid rgba(148,163,184,0.25)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ fontWeight: 900 }}>{d.file_type}</div>
+                  <div className="tp-muted" style={{ fontSize: 12 }}>
+                    {new Date(d.created_at).toLocaleString()}
                   </div>
                 </div>
-              ))}
 
-              {items.length === 0 ? <div style={{ opacity: 0.7 }}>Aucun document pour le moment.</div> : null}
-            </div>
-          )}
-        </div>
+                <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
+                  <div>
+                    <b>Candidate ID :</b> {d.candidate_id}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    onClick={() => openDoc(d)}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 999,
+                      border: "1px solid rgba(148,163,184,0.35)",
+                      background: "white",
+                      cursor: "pointer",
+                      fontWeight: 800,
+                    }}
+                  >
+                    Ouvrir
+                  </button>
+
+                  <span className="tp-muted" style={{ fontSize: 12 }}>
+                    {d.file_url.startsWith("http") ? "URL signée" : "Path storage"}
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {items.length === 0 ? (
+              <div className="tp-muted">Aucun document pour le moment.</div>
+            ) : null}
+          </div>
+        )}
+
+        <div style={{ height: 10 }} />
+
+        <button
+          onClick={refresh}
+          style={{
+            padding: "10px 14px",
+            borderRadius: 999,
+            border: "1px solid rgba(148,163,184,0.35)",
+            background: "rgba(255,255,255,0.85)",
+            cursor: "pointer",
+            fontWeight: 900,
+          }}
+        >
+          Actualiser
+        </button>
       </div>
     </>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 16,
-  border: "1px solid rgba(148,163,184,0.4)",
-  background: "rgba(255,255,255,0.85)",
-};
