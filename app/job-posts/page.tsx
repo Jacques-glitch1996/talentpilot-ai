@@ -1,7 +1,7 @@
 "use client";
 
 import TopNav from "@/components/TopNav";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -10,6 +10,15 @@ type JobPost = {
   title: string;
   description: string;
   status: string;
+};
+
+const inputStyle: CSSProperties = {
+  padding: 14,
+  borderRadius: 16,
+  border: "1px solid rgba(148,163,184,0.4)",
+  background: "rgba(255,255,255,0.85)",
+  outline: "none",
+  width: "100%",
 };
 
 export default function JobPostsPage() {
@@ -33,26 +42,26 @@ export default function JobPostsPage() {
         .select("*")
         .order("created_at", { ascending: false });
 
-      setJobs(list || []);
+      setJobs((list ?? []) as JobPost[]);
       setLoading(false);
     })();
   }, [router]);
 
   const addJob = async () => {
-    if (!title || !description) return;
+    if (!title.trim() || !description.trim()) return;
 
     const { data, error } = await supabase
       .from("job_posts")
       .insert({
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         status: "open",
       })
       .select()
       .single();
 
     if (!error && data) {
-      setJobs([data, ...jobs]);
+      setJobs((prev) => [data as JobPost, ...prev]);
       setTitle("");
       setDescription("");
     }
@@ -62,36 +71,37 @@ export default function JobPostsPage() {
     <>
       <TopNav />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px 50px" }}>
-        <div
-          className="tp-glass"
-          style={{
-            borderRadius: 24,
-            padding: 24,
-            boxShadow: "0 20px 40px rgba(2,6,23,0.08)",
-          }}
-        >
-          <div style={{ marginBottom: 20 }}>
-            <h1 style={{ margin: 0 }}>Offres d’emploi</h1>
-            <div style={{ opacity: 0.6, marginTop: 6 }}>
+      <div style={{ padding: 22, maxWidth: 1100, margin: "0 auto" }}>
+        <div className="tp-section-header">
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 900 }}>Offres d’emploi</div>
+            <div className="tp-muted" style={{ marginTop: 6 }}>
               Créez et gérez vos opportunités.
             </div>
           </div>
+        </div>
 
-          {/* FORMULAIRE CREATION */}
-          <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
+        <div
+          className="tp-glass"
+          style={{
+            padding: 18,
+            borderRadius: 22,
+            border: "1px solid rgba(148,163,184,0.25)",
+          }}
+        >
+          <div style={{ display: "grid", gap: 12 }}>
             <input
-              placeholder="Titre du poste"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="Titre du poste"
               style={inputStyle}
             />
 
             <textarea
-              placeholder="Description du poste"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
+              placeholder="Description / exigences"
               style={inputStyle}
             />
 
@@ -103,60 +113,65 @@ export default function JobPostsPage() {
                 borderRadius: 999,
                 border: "none",
                 color: "white",
-                fontWeight: 700,
+                fontWeight: 800,
                 cursor: "pointer",
-                width: 200,
+                width: 220,
               }}
             >
               Créer l’offre
             </button>
           </div>
+        </div>
 
-          {/* LISTE */}
-          {loading ? (
-            <div>Chargement...</div>
-          ) : (
-            <div style={{ display: "grid", gap: 16 }}>
-              {jobs.map((job) => (
+        <div style={{ height: 18 }} />
+
+        {loading ? (
+          <div>Chargement...</div>
+        ) : (
+          <div style={{ display: "grid", gap: 16 }}>
+            {jobs.map((job) => (
+              <div
+                key={job.id}
+                style={{
+                  padding: 16,
+                  borderRadius: 18,
+                  background: "rgba(255,255,255,0.8)",
+                  border: "1px solid rgba(148,163,184,0.3)",
+                }}
+              >
                 <div
-                  key={job.id}
                   style={{
-                    padding: 16,
-                    borderRadius: 18,
-                    background: "rgba(255,255,255,0.8)",
-                    border: "1px solid rgba(148,163,184,0.3)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                    gap: 12,
+                    alignItems: "center",
+                    flexWrap: "wrap",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <div style={{ fontWeight: 700 }}>{job.title}</div>
-                    <span
-                      style={{
-                        padding: "4px 10px",
-                        borderRadius: 999,
-                        background: "rgba(30,64,175,0.1)",
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {job.status}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 14, opacity: 0.8 }}>
-                    {job.description}
-                  </div>
+                  <div style={{ fontWeight: 800 }}>{job.title}</div>
+
+                  <span
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      background: "rgba(30,64,175,0.1)",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {job.status}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+
+                <div style={{ fontSize: 14, opacity: 0.85 }}>
+                  {job.description}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 16,
-  border: "1px solid rgba(148,163,184,0.4)",
-  background: "rgba(255,255,255,0.85)",
-};
