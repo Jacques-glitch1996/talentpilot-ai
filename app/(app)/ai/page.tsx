@@ -1,6 +1,5 @@
 "use client";
 
-import TopNav from "@/components/TopNav";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -63,7 +62,6 @@ export default function AIPage() {
 
   return (
     <>
-      <TopNav />
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "18px 16px 40px" }}>
         <div className="tp-glass" style={{ borderRadius: 18, padding: 16, boxShadow: "0 10px 30px rgba(2,6,23,0.08)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>

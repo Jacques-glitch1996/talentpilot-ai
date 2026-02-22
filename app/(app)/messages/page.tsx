@@ -1,6 +1,5 @@
 "use client";
 
-import TopNav from "@/components/TopNav";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -58,7 +57,6 @@ export default function MessagesPage() {
 
   return (
     <>
-      <TopNav />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px 50px" }}>
         <div
