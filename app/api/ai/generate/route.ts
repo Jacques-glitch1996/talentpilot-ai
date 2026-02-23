@@ -2,10 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 
-type ReqBody = {
-  type: string;
-  input: string;
-};
+type ReqBody = { type: string; input: string };
 
 const LIMIT_PER_HOUR_PER_USER = 100;
 const LIMIT_PER_HOUR_PER_ORG = 500; // filet de sécurité (ajustable)
@@ -17,15 +14,35 @@ function getBearerToken(req: Request) {
   return authHeader.slice(7).trim();
 }
 
+function getErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  return "Unknown error";
+}
+
+type TextBlock = { type: "text"; text: string };
+function isTextBlock(x: unknown): x is TextBlock {
+  if (typeof x !== "object" || x === null) return false;
+  const obj = x as Record<string, unknown>;
+  return obj.type === "text" && typeof obj.text === "string";
+}
+
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as ReqBody;
+    const bodyUnknown: unknown = await req.json().catch(() => ({}));
+    const bodyObj =
+      typeof bodyUnknown === "object" && bodyUnknown !== null
+        ? (bodyUnknown as Record<string, unknown>)
+        : {};
 
-    if (!body?.type || !body?.input) {
+    const type = typeof bodyObj.type === "string" ? bodyObj.type : "";
+    const inputRaw = typeof bodyObj.input === "string" ? bodyObj.input : "";
+
+    if (!type || !inputRaw) {
       return NextResponse.json({ error: "Missing type or input" }, { status: 400 });
     }
 
-    const input = String(body.input ?? "");
+    const input = String(inputRaw ?? "");
     if (input.length > MAX_INPUT_CHARS) {
       return NextResponse.json(
         { error: `Input too long. Max ${MAX_INPUT_CHARS} characters.` },
@@ -72,9 +89,11 @@ export async function POST(req: Request) {
       .gte("created_at", since);
 
     if (userCountErr) {
-      return NextResponse.json({ error: `Rate-limit check failed: ${userCountErr.message}` }, { status: 500 });
+      return NextResponse.json(
+        { error: `Rate-limit check failed: ${userCountErr.message}` },
+        { status: 500 }
+      );
     }
-
     if ((userCount ?? 0) >= LIMIT_PER_HOUR_PER_USER) {
       return NextResponse.json(
         { error: `Rate limit exceeded. Max ${LIMIT_PER_HOUR_PER_USER} calls per hour (per user).` },
@@ -89,12 +108,14 @@ export async function POST(req: Request) {
       .gte("created_at", since);
 
     if (orgCountErr) {
-      return NextResponse.json({ error: `Rate-limit check failed: ${orgCountErr.message}` }, { status: 500 });
+      return NextResponse.json(
+        { error: `Rate-limit check failed: ${orgCountErr.message}` },
+        { status: 500 }
+      );
     }
-
     if ((orgCount ?? 0) >= LIMIT_PER_HOUR_PER_ORG) {
       return NextResponse.json(
-        { error: `Organization rate limit exceeded. Please try again later.` },
+        { error: "Organization rate limit exceeded. Please try again later." },
         { status: 429 }
       );
     }
@@ -107,9 +128,9 @@ export async function POST(req: Request) {
 
     const anthropic = new Anthropic({ apiKey: anthropicKey });
     const model = "claude-3-haiku-20240307";
-
     const system =
-      "Tu es un assistant RH pour recruteurs au Canada/Québec. Style: professionnel, clair, sans jargon inutile. " +
+      "Tu es un assistant RH pour recruteurs au Canada/Québec. " +
+      "Style: professionnel, clair, sans jargon inutile. " +
       "Ne fais pas de promesses irréalistes. Donne un résultat immédiatement exploitable.";
 
     const msg = await anthropic.messages.create({
@@ -119,30 +140,32 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "user",
-          content: `TYPE: ${body.type}\n\nINPUT:\n${input}`,
+          content: `TYPE: ${type}\n\nINPUT:\n${input}`,
         },
       ],
     });
 
+    const contentUnknown: unknown = (msg as unknown as { content?: unknown }).content;
+    const blocks = Array.isArray(contentUnknown) ? contentUnknown : [];
     const output =
-      msg.content
-        .filter((c: any) => c.type === "text")
-        .map((c: any) => c.text)
-        .join("\n\n") || "";
+      blocks.filter(isTextBlock).map((b) => b.text).join("\n\n") || "";
 
     // Log DB (org_id + user_id via DEFAULT + RLS)
     const { error: logErr } = await supabase.from("ai_logs").insert({
-      type: body.type,
+      type,
       input,
       output,
     });
 
     if (logErr) {
-      return NextResponse.json({ output, error: `AI ok but log failed: ${logErr.message}` }, { status: 200 });
+      return NextResponse.json(
+        { output, error: `AI ok but log failed: ${logErr.message}` },
+        { status: 200 }
+      );
     }
 
     return NextResponse.json({ output }, { status: 200 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Unknown error" }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
   }
 }
