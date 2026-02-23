@@ -1,23 +1,22 @@
 "use client";
 
-import TopNav from "@/components/TopNav";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-type Message = {
+type JobPost = {
   id: string;
-  content: string;
-  channel: string;
-  created_at: string;
+  title: string;
+  description: string;
+  status: string;
 };
 
-export default function MessagesPage() {
+export default function JobPostsPage() {
   const router = useRouter();
 
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [content, setContent] = useState("");
-  const [channel, setChannel] = useState("email");
+  const [jobs, setJobs] = useState<JobPost[]>([]);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,38 +28,39 @@ export default function MessagesPage() {
       }
 
       const { data: list } = await supabase
-        .from("messages")
+        .from("job_posts")
         .select("*")
         .order("created_at", { ascending: false });
 
-      setMessages(list || []);
+      setJobs(list || []);
       setLoading(false);
     })();
   }, [router]);
 
-  const addMessage = async () => {
-    if (!content) return;
+  const addJob = async () => {
+    if (!title || !description) return;
 
     const { data, error } = await supabase
-      .from("messages")
+      .from("job_posts")
       .insert({
-        content,
-        channel,
+        title,
+        description,
+        status: "open",
       })
       .select()
       .single();
 
     if (!error && data) {
-      setMessages([data, ...messages]);
-      setContent("");
+      setJobs([data, ...jobs]);
+      setTitle("");
+      setDescription("");
     }
   };
 
   return (
     <>
-      <TopNav />
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px 50px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px 50px" }}>
         <div
           className="tp-glass"
           style={{
@@ -70,34 +70,31 @@ export default function MessagesPage() {
           }}
         >
           <div style={{ marginBottom: 20 }}>
-            <h1 style={{ margin: 0 }}>Communication</h1>
+            <h1 style={{ margin: 0 }}>Offres d’emploi</h1>
             <div style={{ opacity: 0.6, marginTop: 6 }}>
-              Centralisez vos échanges candidats.
+              Créez et gérez vos opportunités.
             </div>
           </div>
 
-          {/* FORMULAIRE */}
+          {/* FORMULAIRE CREATION */}
           <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
-            <select
-              value={channel}
-              onChange={(e) => setChannel(e.target.value)}
+            <input
+              placeholder="Titre du poste"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               style={inputStyle}
-            >
-              <option value="email">Email</option>
-              <option value="linkedin">LinkedIn</option>
-              <option value="phone">Téléphone</option>
-            </select>
+            />
 
             <textarea
-              placeholder="Contenu du message"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+              placeholder="Description du poste"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               rows={4}
               style={inputStyle}
             />
 
             <button
-              onClick={addMessage}
+              onClick={addJob}
               className="tp-gradient-bg"
               style={{
                 padding: "12px 20px",
@@ -109,7 +106,7 @@ export default function MessagesPage() {
                 width: 200,
               }}
             >
-              Ajouter message
+              Créer l’offre
             </button>
           </div>
 
@@ -118,35 +115,33 @@ export default function MessagesPage() {
             <div>Chargement...</div>
           ) : (
             <div style={{ display: "grid", gap: 16 }}>
-              {messages.map((msg) => (
+              {jobs.map((job) => (
                 <div
-                  key={msg.id}
+                  key={job.id}
                   style={{
                     padding: 16,
                     borderRadius: 18,
-                    background: "rgba(255,255,255,0.85)",
+                    background: "rgba(255,255,255,0.8)",
                     border: "1px solid rgba(148,163,184,0.3)",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <div style={{ fontWeight: 700 }}>{job.title}</div>
                     <span
                       style={{
                         padding: "4px 10px",
                         borderRadius: 999,
-                        background: "rgba(124,58,237,0.1)",
+                        background: "rgba(30,64,175,0.1)",
                         fontSize: 12,
                         fontWeight: 600,
                       }}
                     >
-                      {msg.channel}
+                      {job.status}
                     </span>
-
-                    <div style={{ fontSize: 12, opacity: 0.6 }}>
-                      {new Date(msg.created_at).toLocaleDateString()}
-                    </div>
                   </div>
-
-                  <div style={{ fontSize: 14 }}>{msg.content}</div>
+                  <div style={{ fontSize: 14, opacity: 0.8 }}>
+                    {job.description}
+                  </div>
                 </div>
               ))}
             </div>

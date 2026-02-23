@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local backups (do not commit)
+_backup_ui_shell/
+app/globals.old.css
+app/globals.bad.css
+
+# macOS
+.DS_Store
+
+# Local backups (do not commit)
+_backup_ui_shell/
+app/globals.old.css
+app/globals.bad.css
