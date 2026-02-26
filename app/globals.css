@@ -2,7 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Empêche tout dépassement (width inclut padding + border) */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* =========================
+   Core Tokens (existing + extended)
+   ========================= */
 :root {
+  /* Existing (kept) */
   --tp-blue: #1e40af;
   --tp-violet: #7c3aed;
   --tp-ink: #0b1220;
@@ -18,6 +27,31 @@
   --tp-radius-lg: 18px;
   --tp-radius-md: 14px;
   --tp-radius-sm: 12px;
+
+  /* =========================
+     Requested palette (added)
+     ========================= */
+
+  /* Brand */
+  --tp-primary: #1e40af;        /* blue-800 */
+  --tp-secondary: #7c3aed;      /* violet-600 */
+  --tp-accent-gradient: linear-gradient(135deg, #1e40af, #7c3aed);
+
+  /* Surfaces */
+  --tp-bg: #f8fafc;             /* slate-50 */
+  --tp-surface: #ffffff;        /* white */
+  --tp-border-solid: #e2e8f0;   /* slate-200 */
+
+  /* Text */
+  --tp-text: #0f172a;           /* slate-900 */
+  --tp-text-secondary: #64748b; /* slate-500 */
+  --tp-text-light: #94a3b8;     /* slate-400 */
+
+  /* Status */
+  --tp-success: #16a34a;        /* green-600 */
+  --tp-warning: #d97706;        /* amber-600 */
+  --tp-error: #dc2626;          /* red-600 */
+  --tp-info: #0284c7;           /* sky-600 */
 }
 
 html, body {
@@ -26,10 +60,68 @@ html, body {
   color: var(--tp-ink);
 }
 
+/* Évite le micro-décalage dû à l'apparition/disparition de la scrollbar */
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: -0.01em;
 }
+
+/* =========================
+   Professional helpers (added)
+   ========================= */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.tp-gradient-text {
+  background: var(--tp-accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tp-text { color: var(--tp-text); }
+.tp-text-secondary { color: var(--tp-text-secondary); }
+.tp-text-light { color: var(--tp-text-light); }
+
+/* Badges (added, non-breaking) */
+.tp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--tp-border);
+  background: rgba(255,255,255,0.70);
+}
+.tp-badge-success { border-color: rgba(22,163,74,0.25); background: rgba(22,163,74,0.10); color: var(--tp-success); }
+.tp-badge-warning { border-color: rgba(217,119,6,0.25); background: rgba(217,119,6,0.10); color: var(--tp-warning); }
+.tp-badge-error   { border-color: rgba(220,38,38,0.25); background: rgba(220,38,38,0.10); color: var(--tp-error); }
+.tp-badge-info    { border-color: rgba(2,132,199,0.25); background: rgba(2,132,199,0.10); color: var(--tp-info); }
+
+/* Tables (added, optional) */
+.tp-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.tp-table th {
+  text-align: left;
+  font-size: 12px;
+  color: var(--tp-text-secondary);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--tp-border);
+}
+.tp-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--tp-border);
+}
+.tp-row:hover td { background: rgba(15, 23, 42, 0.02); }
 
 /* Background (app) */
 .tp-app-bg {
@@ -45,12 +137,12 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
-  padding: 14px 18px 10px;
+  padding: 0;
 }
 
 .tp-header__inner {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -105,14 +197,19 @@ body {
   gap: 10px;
   flex: 1;
   justify-content: flex-end;
+  /* (added) prevents flex overflow on smaller widths */
+  min-width: 0;
 }
 
 .tp-search {
   width: min(460px, 46vw);
+  /* (added) allows input to shrink without pushing icons */
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .tp-search__input {
-  width: 100%;
+  width: 50%;
   height: 40px;
   border-radius: 999px;
   border: 1px solid var(--tp-border);
@@ -131,6 +228,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  /* (added) icons never shrink/collide */
+  flex: 0 0 auto;
 }
 
 .tp-icon-btn {
@@ -161,8 +260,8 @@ body {
 }
 
 .tp-sections__inner {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   display: flex;
   gap: 8px;
   align-items: center;
@@ -199,12 +298,13 @@ body {
 
 /* Main */
 .tp-main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 18px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .tp-page {
+  width: 100%;
   border-radius: var(--tp-radius-lg);
   border: 1px solid rgba(255, 255, 255, 0.55);
   background: rgba(255, 255, 255, 0.65);
@@ -317,3 +417,113 @@ body {
   border-color: rgba(30, 64, 175, 0.35);
   box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.12);
 }
+
+/* =========================
+   CTA Button System (global)
+   ========================= */
+
+/* Base */
+.tp-btn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--tp-border);
+  background: rgba(255,255,255,0.75);
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.tp-btn:hover { border-color: var(--tp-border-strong); }
+.tp-btn:active { transform: translateY(1px); }
+
+/* Primary (brand gradient) */
+.tp-btn-primary {
+  border: none;
+  color: white;
+  background: var(--tp-accent-gradient);
+  box-shadow: 0 10px 22px rgba(30, 64, 175, 0.22);
+}
+.tp-btn-primary:hover { box-shadow: 0 14px 28px rgba(30, 64, 175, 0.26); transform: translateY(-1px); }
+.tp-btn-primary:active { transform: translateY(0); }
+
+/* Secondary (outline brand) */
+.tp-btn-secondary {
+  background: rgba(255,255,255,0.78);
+  border-color: rgba(30,64,175,0.35);
+  color: var(--tp-ink);
+}
+.tp-btn-secondary:hover { background: rgba(30,64,175,0.06); border-color: rgba(30,64,175,0.45); }
+
+/* Danger (destructive) */
+.tp-btn-danger {
+  border: none;
+  color: white;
+  background: var(--tp-error);
+  box-shadow: 0 10px 22px rgba(220, 38, 38, 0.22);
+}
+.tp-btn-danger:hover { box-shadow: 0 14px 28px rgba(220, 38, 38, 0.28); }
+
+/* Ghost (text button) */
+.tp-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: rgba(15, 23, 42, 0.75);
+}
+.tp-btn-ghost:hover { background: rgba(255,255,255,0.70); border-color: var(--tp-border); }
+
+/* Small / Large */
+.tp-btn-sm { height: 34px; padding: 0 12px; font-weight: 800; }
+.tp-btn-lg { height: 46px; padding: 0 18px; font-weight: 900; }
+
+@media (max-width: 720px) {
+  .tp-page { padding: 14px; }
+  /* IMPORTANT : pas de padding sur tp-header / tp-main, c'est géré par tp-container-pad */
+}
+
+/* =========================
+   Unified Container (96%)
+   ========================= */
+.tp-container {
+  width: 96%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* padding uniforme pour header/sections/main */
+.tp-container-pad {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+/* =========================
+   Button polish (links + center + no underline)
+   ========================= */
+
+/* Les liens qui ressemblent à des boutons ne doivent jamais être soulignés */
+.tp-btn,
+.tp-btn:link,
+.tp-btn:visited {
+  text-decoration: none;
+}
+
+/* Boutons et liens-boutons parfaitement centrés */
+.tp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Cas où un Link est utilisé avec tp-btn */
+a.tp-btn {
+  text-decoration: none;
+}
+a.tp-btn:hover {
+  text-decoration: none;
+}
+
+.tp-btn-sm { height: 34px; }
+.tp-btn { min-height: 40px; }
+.tp-btn-lg { height: 46px; }
