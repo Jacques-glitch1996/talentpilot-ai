@@ -87,7 +87,9 @@ export default function TopNav() {
                     padding: "8px 12px",
                     borderRadius: 999,
                     textDecoration: "none",
-                    border: active ? "1px solid rgba(30,64,175,0.45)" : "1px solid rgba(148,163,184,0.25)",
+                    border: active
+                      ? "1px solid rgba(30,64,175,0.45)"
+                      : "1px solid rgba(148,163,184,0.25)",
                     background: active ? "rgba(30,64,175,0.08)" : "rgba(255,255,255,0.55)",
                     fontWeight: 800,
                     color: "inherit",
@@ -99,21 +101,12 @@ export default function TopNav() {
             })}
           </div>
 
-          <button
-            onClick={logout}
-            style={{
-              padding: "10px 14px",
-              borderRadius: 999,
-              border: "1px solid rgba(148,163,184,0.35)",
-              background: "rgba(255,255,255,0.85)",
-              cursor: "pointer",
-              fontWeight: 900,
-            }}
-          >
+          {/* Déconnexion (brandé) */}
+          <button className="tp-btn tp-btn-primary" onClick={logout}>
             Déconnexion
           </button>
 
-          {/* MOBILE BUTTON */}
+          {/* MOBILE BUTTON (inchangé visuellement) */}
           <button
             onClick={() => setOpen((v) => !v)}
             style={{
@@ -146,7 +139,9 @@ export default function TopNav() {
                     padding: "10px 12px",
                     borderRadius: 14,
                     textDecoration: "none",
-                    border: active ? "1px solid rgba(30,64,175,0.45)" : "1px solid rgba(148,163,184,0.25)",
+                    border: active
+                      ? "1px solid rgba(30,64,175,0.45)"
+                      : "1px solid rgba(148,163,184,0.25)",
                     background: active ? "rgba(30,64,175,0.08)" : "rgba(255,255,255,0.55)",
                     fontWeight: 900,
                     color: "inherit",
@@ -157,17 +152,8 @@ export default function TopNav() {
               );
             })}
 
-            <button
-              onClick={logout}
-              style={{
-                padding: "10px 12px",
-                borderRadius: 14,
-                border: "1px solid rgba(148,163,184,0.35)",
-                background: "rgba(255,255,255,0.85)",
-                cursor: "pointer",
-                fontWeight: 900,
-              }}
-            >
+            {/* Déconnexion (brandé) */}
+            <button className="tp-btn tp-btn-primary" onClick={logout}>
               Déconnexion
             </button>
           </div>

@@ -75,9 +75,7 @@ export default function HistoryPage() {
 
       if (!q) return true;
 
-      const hay =
-        `${l.type}\n${l.input}\n${l.output}`.toLowerCase();
-
+      const hay = `${l.type}\n${l.input}\n${l.output}`.toLowerCase();
       return hay.includes(q);
     });
   }, [logs, typeFilter, query]);
@@ -100,216 +98,163 @@ export default function HistoryPage() {
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 1200);
     } catch {
-      // fallback: rien
+      // ignore
     }
   };
 
   return (
-    <>
-
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 16px 50px" }}>
-        <div
-          className="tp-glass"
-          style={{
-            borderRadius: 24,
-            padding: 24,
-            boxShadow: "0 20px 40px rgba(2,6,23,0.08)",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <h1 style={{ margin: 0 }}>Historique</h1>
-              <div style={{ opacity: 0.65, marginTop: 6 }}>
-                Journal des générations AI (audit, traçabilité, qualité).
-              </div>
-            </div>
-
-            <button
-              onClick={refresh}
-              className="tp-gradient-bg"
-              style={{
-                padding: "12px 18px",
-                borderRadius: 999,
-                border: "none",
-                color: "white",
-                fontWeight: 800,
-                cursor: "pointer",
-              }}
-            >
-              Actualiser
-            </button>
-          </div>
-
-          <div style={{ height: 16 }} />
-
-          {/* Filtres */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "240px 1fr 160px auto",
-              gap: 12,
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              style={inputStyle}
-            >
-              {types.map((t) => (
-                <option key={t} value={t}>
-                  {t === "all" ? "Tous les types" : t}
-                </option>
-              ))}
-            </select>
-
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Recherche (type, input, output)…"
-              style={inputStyle}
-            />
-
-            <select
-              value={String(limit)}
-              onChange={(e) => setLimit(Number(e.target.value))}
-              style={inputStyle}
-            >
-              <option value="25">25 derniers</option>
-              <option value="50">50 derniers</option>
-              <option value="100">100 derniers</option>
-              <option value="200">200 derniers</option>
-            </select>
-
-            <button
-              onClick={refresh}
-              style={{
-                padding: "12px 16px",
-                borderRadius: 999,
-                border: "1px solid rgba(148,163,184,0.35)",
-                background: "rgba(255,255,255,0.85)",
-                cursor: "pointer",
-                fontWeight: 800,
-              }}
-              title="Appliquer limite / recharger"
-            >
-              Appliquer
-            </button>
-          </div>
-
-          {err ? <div style={{ color: "crimson", marginBottom: 14 }}>❌ {err}</div> : null}
-
-          {/* Liste */}
-          {loading ? (
-            <div>Chargement...</div>
-          ) : (
-            <>
-              <div style={{ opacity: 0.7, fontSize: 13, marginBottom: 12 }}>
-                {filtered.length} résultat(s) affiché(s)
-              </div>
-
-              <div style={{ display: "grid", gap: 14 }}>
-                {filtered.map((l) => {
-                  const expanded = expandedId === l.id;
-
-                  return (
-                    <div
-                      key={l.id}
-                      style={{
-                        padding: 16,
-                        borderRadius: 18,
-                        background: "rgba(255,255,255,0.85)",
-                        border: "1px solid rgba(148,163,184,0.25)",
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                          <span
-                            style={{
-                              padding: "4px 10px",
-                              borderRadius: 999,
-                              background: "rgba(124,58,237,0.10)",
-                              fontSize: 12,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {l.type || "unknown"}
-                          </span>
-
-                          <span style={{ fontSize: 12, opacity: 0.7 }}>
-                            {humanDate(l.created_at)}
-                          </span>
-                        </div>
-
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button
-                            onClick={() => copy(l.id, l.output || "")}
-                            style={ghostBtn}
-                            title="Copier le résultat"
-                          >
-                            {copiedId === l.id ? "✅ Copié" : "Copier"}
-                          </button>
-
-                          <button
-                            onClick={() => setExpandedId(expanded ? null : l.id)}
-                            style={ghostBtn}
-                          >
-                            {expanded ? "Réduire" : "Détails"}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div style={{ height: 10 }} />
-
-                      <div style={{ fontSize: 13, opacity: 0.8 }}>
-                        <b>Input :</b> {expanded ? (l.input || "—") : short(l.input || "—")}
-                      </div>
-
-                      <div style={{ height: 10 }} />
-
-                      <div style={{ fontSize: 13, opacity: 0.85 }}>
-                        <b>Output :</b> {expanded ? (l.output || "—") : short(l.output || "—")}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {filtered.length === 0 ? (
-                  <div style={{ opacity: 0.75 }}>
-                    Aucun élément ne correspond à vos filtres.
-                  </div>
-                ) : null}
-              </div>
-            </>
-          )}
+    <div className="tp-page">
+      <div className="tp-page-header">
+        <div>
+          <h1 className="tp-h1">Historique</h1>
+          <p className="tp-subtitle">
+            Journal des générations AI (audit, traçabilité, qualité).
+          </p>
         </div>
+
+        <button className="tp-btn tp-btn-primary" onClick={refresh}>
+          Actualiser
+        </button>
       </div>
 
-      {/* Responsive simple */}
-      <style jsx global>{`
-        @media (max-width: 980px) {
-          .tp-history-filters {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
-    </>
+      <div className="tp-card">
+        {/* Filtres */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "240px 1fr 160px auto",
+            gap: 12,
+            alignItems: "center",
+            marginBottom: 14,
+          }}
+        >
+          <select
+            className="tp-input"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            style={{ borderRadius: 16 }}
+          >
+            {types.map((t) => (
+              <option key={t} value={t}>
+                {t === "all" ? "Tous les types" : t}
+              </option>
+            ))}
+          </select>
+
+          <input
+            className="tp-input"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Recherche (type, input, output)…"
+          />
+
+          <select
+            className="tp-input"
+            value={String(limit)}
+            onChange={(e) => setLimit(Number(e.target.value))}
+            style={{ borderRadius: 16 }}
+          >
+            <option value="25">25 derniers</option>
+            <option value="50">50 derniers</option>
+            <option value="100">100 derniers</option>
+            <option value="200">200 derniers</option>
+          </select>
+
+          <button className="tp-btn tp-btn-secondary" onClick={refresh} title="Appliquer limite / recharger">
+            Appliquer
+          </button>
+        </div>
+
+        {err ? (
+          <div className="tp-badge tp-badge-error" style={{ marginBottom: 14 }}>
+            ❌ {err}
+          </div>
+        ) : null}
+
+        {/* Liste */}
+        {loading ? (
+          <div className="tp-muted">Chargement...</div>
+        ) : (
+          <>
+            <div className="tp-muted" style={{ fontSize: 13, marginBottom: 12 }}>
+              {filtered.length} résultat(s) affiché(s)
+            </div>
+
+            <div style={{ display: "grid", gap: 14 }}>
+              {filtered.map((l) => {
+                const expanded = expandedId === l.id;
+
+                return (
+                  <div
+                    key={l.id}
+                    style={{
+                      padding: 16,
+                      borderRadius: 18,
+                      background: "rgba(255,255,255,0.85)",
+                      border: "1px solid rgba(148,163,184,0.25)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                        <span className="tp-badge tp-badge-info">{l.type || "unknown"}</span>
+                        <span className="tp-muted" style={{ fontSize: 12 }}>
+                          {humanDate(l.created_at)}
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button
+                          className="tp-btn tp-btn-ghost tp-btn-sm"
+                          onClick={() => copy(l.id, l.output || "")}
+                          title="Copier le résultat"
+                        >
+                          {copiedId === l.id ? "✅ Copié" : "Copier"}
+                        </button>
+
+                        <button
+                          className="tp-btn tp-btn-ghost tp-btn-sm"
+                          onClick={() => setExpandedId(expanded ? null : l.id)}
+                        >
+                          {expanded ? "Réduire" : "Détails"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ height: 10 }} />
+
+                    <div className="tp-muted" style={{ fontSize: 13 }}>
+                      <b>Input :</b> {expanded ? (l.input || "—") : short(l.input || "—")}
+                    </div>
+
+                    <div style={{ height: 10 }} />
+
+                    <div className="tp-muted" style={{ fontSize: 13 }}>
+                      <b>Output :</b> {expanded ? (l.output || "—") : short(l.output || "—")}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {filtered.length === 0 ? (
+                <div className="tp-badge tp-badge-info" style={{ justifyContent: "center" }}>
+                  Aucun élément ne correspond à vos filtres.
+                </div>
+              ) : null}
+            </div>
+
+            {/* Responsive: si écran étroit, on empile naturellement */}
+            <div style={{ height: 2 }} />
+          </>
+        )}
+      </div>
+    </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 16,
-  border: "1px solid rgba(148,163,184,0.4)",
-  background: "rgba(255,255,255,0.85)",
-};
-
-const ghostBtn: React.CSSProperties = {
-  padding: "10px 14px",
-  borderRadius: 999,
-  border: "1px solid rgba(148,163,184,0.35)",
-  background: "rgba(255,255,255,0.85)",
-  cursor: "pointer",
-  fontWeight: 800,
-};
